@@ -1,10 +1,11 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { ScreenGroup, ScreenData, WbsTask, TestCase, WbsStatus, QAStatus, QAPriority, QAPosition, Comment } from '../types';
+import { PrefixGroup, ScreenData, WbsTask, TestCase, WbsStatus, QAStatus, QAPriority, QAPosition, Comment } from '../types';
+import { CoverThumbnail } from './CoverThumbnail';
 
 interface DetailModalProps {
-  group: ScreenGroup;
+  group: PrefixGroup;
   onClose: () => void;
 }
 
@@ -21,11 +22,27 @@ const DetailModal: React.FC<DetailModalProps> = ({ group, onClose }) => {
   const [newComment, setNewComment] = useState('');
   const [selectedCommentUser, setSelectedCommentUser] = useState(TEAM_MEMBERS[0]);
 
+  // Flatten all screens from all baseIds
+  const allScreens = useMemo(() => {
+    return Object.values(group.baseIds).flat();
+  }, [group]);
+
+  // Find active screen or get all screens for 종합
   const activeScreen = useMemo(() => {
-    if (!activeScreenId) return group.parent;
-    if (activeScreenId === group.parent.figmaId) return group.parent;
-    return group.children.find(c => c.figmaId === activeScreenId) || group.parent;
-  }, [activeScreenId, group]);
+    if (activeScreenId === null) return null;
+    return allScreens.find(s => s.figmaId === activeScreenId) || null;
+  }, [activeScreenId, allScreens]);
+
+  // Get screens for WBS/QA data loading
+  const activeScreensForData = useMemo(() => {
+    if (activeScreenId === null) {
+      // 종합: all screens
+      return allScreens;
+    } else {
+      // Specific screen: single screen
+      return activeScreen ? [activeScreen] : [];
+    }
+  }, [activeScreenId, activeScreen, allScreens]);
 
   const getKeys = (screenId: string) => ({
     wbs: `wbs_${screenId}`,
@@ -33,52 +50,37 @@ const DetailModal: React.FC<DetailModalProps> = ({ group, onClose }) => {
   });
 
   useEffect(() => {
-    if (activeScreenId === null) {
-      const allScreens = [group.parent, ...group.children];
-      let aggregatedWbs: WbsTask[] = [];
-      let aggregatedQa: TestCase[] = [];
+    // Load WBS/QA data for active screen(s)
+    let aggregatedWbs: WbsTask[] = [];
+    let aggregatedQa: TestCase[] = [];
 
-      allScreens.forEach(s => {
-        const savedWbs = localStorage.getItem(`wbs_${s.figmaId}`);
-        const savedQa = localStorage.getItem(`qa_${s.figmaId}`);
-        if (savedWbs) {
-          const tasks = JSON.parse(savedWbs).map((t: WbsTask) => ({ ...t, originScreenId: s.figmaId }));
-          aggregatedWbs = [...aggregatedWbs, ...tasks];
-        }
-        if (savedQa) {
-          const cases = JSON.parse(savedQa).map((c: TestCase) => ({ ...c, originScreenId: s.figmaId }));
-          aggregatedQa = [...aggregatedQa, ...cases];
-        }
-      });
+    activeScreensForData.forEach(s => {
+      const savedWbs = localStorage.getItem(`wbs_${s.figmaId}`);
+      const savedQa = localStorage.getItem(`qa_${s.figmaId}`);
+      if (savedWbs) {
+        const tasks = JSON.parse(savedWbs).map((t: WbsTask) => ({ ...t, originScreenId: s.figmaId }));
+        aggregatedWbs = [...aggregatedWbs, ...tasks];
+      }
+      if (savedQa) {
+        const cases = JSON.parse(savedQa).map((c: TestCase) => ({ ...c, originScreenId: s.figmaId }));
+        aggregatedQa = [...aggregatedQa, ...cases];
+      }
+    });
 
-      setWbsTasks(aggregatedWbs);
-      setTestCases(aggregatedQa);
-    } else {
-      const { wbs, qa } = getKeys(activeScreenId);
-      const savedWbs = localStorage.getItem(wbs);
-      const savedQa = localStorage.getItem(qa);
-      setWbsTasks(savedWbs ? JSON.parse(savedWbs) : []);
-      setTestCases(savedQa ? JSON.parse(savedQa) : []);
-    }
+    setWbsTasks(aggregatedWbs);
+    setTestCases(aggregatedQa);
     setEditingQAId(null);
-  }, [activeScreenId, group]);
+  }, [activeScreenId, activeScreensForData]);
 
   const saveToStorage = (tasks: WbsTask[], cases: TestCase[]) => {
-    if (activeScreenId) {
-      const { wbs, qa } = getKeys(activeScreenId);
-      localStorage.setItem(wbs, JSON.stringify(tasks));
-      localStorage.setItem(qa, JSON.stringify(cases));
-    } else {
-      // Aggregate mode editing: Partition by originScreenId
-      const allScreens = [group.parent, ...group.children];
-      allScreens.forEach(s => {
-        const screenTasks = tasks.filter(t => t.originScreenId === s.figmaId || (!t.originScreenId && s.figmaId === group.parent.figmaId));
-        const screenCases = cases.filter(c => c.originScreenId === s.figmaId || (!c.originScreenId && s.figmaId === group.parent.figmaId));
-        const { wbs, qa } = getKeys(s.figmaId);
-        localStorage.setItem(wbs, JSON.stringify(screenTasks));
-        localStorage.setItem(qa, JSON.stringify(screenCases));
-      });
-    }
+    // Partition by originScreenId
+    activeScreensForData.forEach(s => {
+      const screenTasks = tasks.filter(t => t.originScreenId === s.figmaId || (!t.originScreenId && s === activeScreensForData[0]));
+      const screenCases = cases.filter(c => c.originScreenId === s.figmaId || (!c.originScreenId && s === activeScreensForData[0]));
+      const { wbs, qa } = getKeys(s.figmaId);
+      localStorage.setItem(wbs, JSON.stringify(screenTasks));
+      localStorage.setItem(qa, JSON.stringify(screenCases));
+    });
   };
 
   const updateWbsTask = (id: string, updates: Partial<WbsTask>) => {
@@ -132,7 +134,7 @@ const DetailModal: React.FC<DetailModalProps> = ({ group, onClose }) => {
       assignee: TEAM_MEMBERS[0],
       startDate: today,
       endDate: today,
-      originScreenId: activeScreenId || group.parent.figmaId
+      originScreenId: activeScreensForData[0]?.figmaId || ''
     };
     const next = [...wbsTasks, newTask];
     setWbsTasks(next);
@@ -143,7 +145,7 @@ const DetailModal: React.FC<DetailModalProps> = ({ group, onClose }) => {
     const newTC: TestCase = {
       id: crypto.randomUUID(), scenario: '이슈 발생 확인 필요', issueContent: '', date: new Date().toISOString().split('T')[0],
       status: 'Open', reporter: TEAM_MEMBERS[0], priority: 'Medium', position: 'Front-end', assignee: TEAM_MEMBERS[1], progress: 0, comments: [],
-      originScreenId: activeScreenId || group.parent.figmaId
+      originScreenId: activeScreensForData[0]?.figmaId || ''
     };
     const next = [...testCases, newTC];
     setTestCases(next);
@@ -177,33 +179,27 @@ const DetailModal: React.FC<DetailModalProps> = ({ group, onClose }) => {
           </button>
           <div>
             <h1 className="text-xl font-black tracking-tight text-slate-900 uppercase">
-              {group.parent.baseId} {activeScreenId === null ? <span className="text-yellow-600 ml-2">종합 관리 (MASTER)</span> : <span className="text-slate-400 ml-2">/ {activeScreen.suffix ? `_${activeScreen.suffix}` : '메인'}</span>}
+              {group.prefix} {activeScreenId === null ? <span className="text-yellow-600 ml-2">종합 관리 (MASTER)</span> : <span className="text-slate-400 ml-2">/ {activeScreen?.name || ''}</span>}
             </h1>
             <p className="text-[10px] text-slate-600 font-bold uppercase tracking-widest leading-none mt-1">{group.pageName}</p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 bg-slate-200 p-1.5 rounded-2xl border border-slate-300 shadow-inner">
+        <div className="flex items-center gap-2 bg-slate-200 p-1.5 rounded-2xl border border-slate-300 shadow-inner overflow-x-auto max-w-4xl">
           <button
             onClick={() => setActiveScreenId(null)}
-            className={`px-5 py-2 rounded-xl text-[11px] font-black transition-all ${activeScreenId === null ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-600 hover:text-slate-900'}`}
+            className={`px-5 py-2 rounded-xl text-[11px] font-black transition-all whitespace-nowrap ${activeScreenId === null ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-600 hover:text-slate-900'}`}
           >
             종합 (MASTER)
           </button>
           <div className="w-px h-4 bg-slate-400 mx-1"></div>
-          <button
-            onClick={() => setActiveScreenId(group.parent.figmaId)}
-            className={`px-4 py-2 rounded-xl text-[11px] font-black transition-all ${activeScreenId === group.parent.figmaId ? 'bg-white text-slate-900 shadow-md border border-slate-300' : 'text-slate-600 hover:text-slate-900'}`}
-          >
-            메인
-          </button>
-          {group.children.map((child, idx) => (
+          {allScreens.map((screen) => (
             <button
-              key={child.id}
-              onClick={() => setActiveScreenId(child.figmaId)}
-              className={`px-4 py-2 rounded-xl text-[11px] font-black transition-all ${activeScreenId === child.figmaId ? 'bg-white text-slate-900 shadow-md border border-slate-300' : 'text-slate-600 hover:text-slate-900'}`}
+              key={screen.figmaId}
+              onClick={() => setActiveScreenId(screen.figmaId)}
+              className={`px-4 py-2 rounded-xl text-[11px] font-black transition-all whitespace-nowrap ${activeScreenId === screen.figmaId ? 'bg-white text-slate-900 shadow-md border border-slate-300' : 'text-slate-600 hover:text-slate-900'}`}
             >
-              V{idx + 1}
+              {screen.name}
             </button>
           ))}
         </div>
@@ -214,22 +210,79 @@ const DetailModal: React.FC<DetailModalProps> = ({ group, onClose }) => {
       <div className="flex-1 flex overflow-hidden bg-slate-100">
         <div className="w-[35%] flex flex-col border-r border-slate-300 overflow-hidden bg-slate-200">
           <div className="flex-1 overflow-auto p-10 flex items-start justify-center custom-scrollbar">
-            {activeScreen.thumbnailUrl ? (
-              <img src={activeScreen.thumbnailUrl} className="max-w-full h-auto shadow-2xl rounded-2xl border border-white" alt="디자인" />
+            {(activeScreen?.coverData) ? (
+              <CoverThumbnail coverData={activeScreen.coverData} className="shadow-2xl" />
+            ) : (activeScreen?.thumbnailUrl || allScreens[0]?.thumbnailUrl) ? (
+              <img src={activeScreen?.thumbnailUrl || allScreens[0]?.thumbnailUrl} className="max-w-full h-auto shadow-2xl rounded-2xl border border-white" alt="디자인" />
             ) : (
               <div className="w-full aspect-video bg-white flex items-center justify-center text-slate-400 font-black uppercase rounded-2xl border border-slate-300">미리보기 없음</div>
             )}
           </div>
-          <div className="p-8 bg-white border-t border-slate-300 h-[30%] overflow-y-auto custom-scrollbar">
+
+          <div className="p-8 bg-white border-t border-slate-300 max-h-[60%] overflow-y-auto custom-scrollbar">
              <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest mb-4 flex items-center gap-2">
                 <span className="w-2 h-2 bg-yellow-500 rounded-full"></span>
                 기획 및 스펙 내용
              </h3>
-             <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200">
-                <p className="text-sm text-slate-900 leading-relaxed whitespace-pre-wrap font-bold">
-                  {activeScreen.description || '기획/스펙 내용이 없습니다.'}
-                </p>
-             </div>
+
+             {activeScreenId === null ? (
+               <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200">
+                 <p className="text-sm text-slate-600 leading-relaxed font-bold">
+                   종합 관리 모드입니다. 특정 화면을 선택하면 상세 정보를 확인할 수 있습니다.
+                 </p>
+                 <div className="mt-4 pt-4 border-t border-slate-300">
+                   <p className="text-xs text-slate-500 font-bold">
+                     총 {allScreens.length}개의 화면이 이 섹션에 포함되어 있습니다.
+                   </p>
+                 </div>
+               </div>
+             ) : (
+               <div className="space-y-4">
+                 {/* Screen Information */}
+                 {activeScreen?.screenInformation && (
+                   <div className="bg-blue-50 p-6 rounded-2xl border border-blue-200">
+                     <h4 className="text-[10px] font-black text-blue-700 uppercase tracking-widest mb-2">Screen Information</h4>
+                     <p className="text-sm text-slate-900 leading-relaxed whitespace-pre-wrap font-bold">
+                       {activeScreen.screenInformation}
+                     </p>
+                   </div>
+                 )}
+
+                 {/* Single Screen Description */}
+                 <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200">
+                   <h4 className="text-[10px] font-black text-slate-700 uppercase tracking-widest mb-4">Description</h4>
+                   {activeScreen?.description ? (
+                     <p className="text-sm text-slate-900 leading-relaxed whitespace-pre-wrap font-bold">
+                       {activeScreen.description}
+                     </p>
+                   ) : (
+                     <p className="text-sm text-slate-500 leading-relaxed font-bold italic">
+                       기획/스펙 내용이 없습니다.
+                     </p>
+                   )}
+                 </div>
+
+                 {/* Screen Metadata */}
+                 <div className="bg-white p-6 rounded-2xl border border-slate-200">
+                   <div className="grid grid-cols-2 gap-4 text-xs">
+                     <div>
+                       <span className="text-slate-500 font-bold uppercase block mb-1">화면 이름</span>
+                       <span className="text-slate-900 font-black">{activeScreen?.name}</span>
+                     </div>
+                     <div>
+                       <span className="text-slate-500 font-bold uppercase block mb-1">Base ID</span>
+                       <span className="text-slate-900 font-black">{activeScreen?.baseId}</span>
+                     </div>
+                     {activeScreen?.suffix && (
+                       <div>
+                         <span className="text-slate-500 font-bold uppercase block mb-1">Suffix</span>
+                         <span className="text-slate-900 font-black">{activeScreen.suffix}</span>
+                       </div>
+                     )}
+                   </div>
+                 </div>
+               </div>
+             )}
           </div>
         </div>
 
@@ -245,146 +298,85 @@ const DetailModal: React.FC<DetailModalProps> = ({ group, onClose }) => {
                 <div className="flex items-center justify-between">
                   <div>
                     <h2 className="text-3xl font-black text-slate-900 tracking-tighter uppercase leading-none">작업 로드맵</h2>
-                    <p className="text-[10px] text-slate-600 font-bold mt-2 uppercase tracking-widest">{activeScreenId === null ? '전체 화면 통합 보기' : '현재 화면 상세 작업'}</p>
+                    <p className="text-[10px] text-slate-600 font-bold mt-2 uppercase tracking-widest">{activeScreenId === null ? '전체 화면 통합 보기' : `${activeScreen?.name || ''} 상세 작업`}</p>
                   </div>
                   <button onClick={addWbsTask} className="px-6 py-3 bg-slate-900 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-xl hover:bg-black transition-all">+ 업무 추가</button>
                 </div>
 
-                {timelineRange ? (
-                  <div className="border border-slate-300 rounded-[2rem] overflow-hidden shadow-sm bg-white">
-                    <div className="bg-slate-100 flex border-b border-slate-300 sticky top-0 z-20">
-                      <div className="w-56 shrink-0 border-r border-slate-300 p-4 text-[10px] font-black text-slate-800 uppercase tracking-widest">업무명 / 카테고리</div>
-                      <div className="flex flex-1 overflow-x-auto custom-scrollbar bg-slate-50">
-                        {timelineRange.days.map((day, i) => {
-                          const isWeekend = day.getDay() === 0 || day.getDay() === 6;
-                          return (
-                            <div key={i} className={`w-14 shrink-0 border-r border-slate-200 flex flex-col items-center justify-center py-3 ${isWeekend ? 'bg-red-50' : ''}`}>
-                              <span className={`text-[9px] font-black ${isWeekend ? 'text-red-500' : 'text-slate-500'}`}>{['일','월','화','수','목','금','토'][day.getDay()]}</span>
-                              <span className={`text-xs font-black ${isWeekend ? 'text-red-600' : 'text-slate-900'}`}>{day.getDate()}</span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                    <div className="flex flex-col">
-                      {wbsTasks.map(task => {
-                        const start = new Date(task.startDate);
-                        const end = new Date(task.endDate);
-                        const startIndex = timelineRange.days.findIndex(d => d.toDateString() === start.toDateString());
-                        const endIndex = timelineRange.days.findIndex(d => d.toDateString() === end.toDateString());
-                        const duration = Math.max(1, (endIndex - startIndex) + 1);
-
-                        return (
-                          <div key={task.id} className="flex border-b border-slate-200 group hover:bg-slate-50 transition-colors">
-                            <div className="w-56 shrink-0 border-r border-slate-300 p-4 flex flex-col justify-center gap-1 bg-white group-hover:bg-slate-50">
+                {/* WBS Timeline and Table - reuse existing logic */}
+                {wbsTasks.length === 0 ? (
+                  <div className="p-20 text-center border-2 border-dashed border-slate-300 rounded-[3rem] bg-slate-50 text-slate-500 font-black uppercase tracking-widest">업무 데이터가 없습니다.</div>
+                ) : (
+                  <div className="bg-white border border-slate-300 rounded-[2.5rem] overflow-hidden shadow-sm">
+                    <table className="w-full text-left">
+                      <thead className="bg-slate-100 text-[10px] font-black text-slate-800 uppercase tracking-widest border-b border-slate-300">
+                        <tr>
+                          <th className="px-8 py-5">상세 업무명</th>
+                          <th className="px-8 py-5">담당자</th>
+                          <th className="px-8 py-5">일정 (시작/종료)</th>
+                          <th className="px-8 py-5">상태</th>
+                          <th className="px-8 py-5"></th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-200">
+                        {wbsTasks.map(task => (
+                          <tr key={task.id} className="group hover:bg-slate-50">
+                            <td className="px-8 py-5">
                               <input
+                                type="text"
                                 value={task.name}
                                 onChange={e => updateWbsTask(task.id, {name: e.target.value})}
-                                className="text-[12px] font-black text-slate-900 bg-transparent outline-none focus:text-yellow-600"
+                                className="w-full bg-transparent font-black text-slate-900 text-sm outline-none focus:text-slate-900 border-b border-transparent focus:border-slate-300"
                               />
-                              <div className="flex items-center gap-2">
-                                <span className="text-[10px] text-slate-600 font-bold uppercase">{task.assignee}</span>
-                                {activeScreenId === null && task.originScreenId && (
-                                  <span className="text-[8px] bg-slate-100 px-1 rounded text-slate-400 font-black">
-                                    {task.originScreenId === group.parent.figmaId ? 'MAIN' : 'VAR'}
-                                  </span>
-                                )}
+                              <input
+                                type="text"
+                                value={task.detail}
+                                onChange={e => updateWbsTask(task.id, {detail: e.target.value})}
+                                placeholder="상세 기술 내용..."
+                                className="w-full bg-transparent text-[11px] font-bold text-slate-500 mt-1 outline-none"
+                              />
+                            </td>
+                            <td className="px-8 py-5">
+                              <select value={task.assignee} onChange={e => updateWbsTask(task.id, {assignee: e.target.value})} className="bg-transparent font-black text-slate-900 text-xs outline-none cursor-pointer">
+                                {TEAM_MEMBERS.map(m => <option key={m}>{m}</option>)}
+                              </select>
+                            </td>
+                            <td className="px-8 py-5">
+                              <div className="flex flex-col gap-2">
+                                <input
+                                  type="date"
+                                  value={task.startDate}
+                                  onChange={e => updateWbsTask(task.id, {startDate: e.target.value})}
+                                  className="bg-slate-50 border border-slate-300 px-3 py-1.5 rounded-lg font-black text-slate-900 text-xs outline-none focus:ring-2 focus:ring-yellow-400"
+                                />
+                                <input
+                                  type="date"
+                                  value={task.endDate}
+                                  onChange={e => updateWbsTask(task.id, {endDate: e.target.value})}
+                                  className="bg-slate-50 border border-slate-300 px-3 py-1.5 rounded-lg font-black text-slate-900 text-xs outline-none focus:ring-2 focus:ring-yellow-400"
+                                />
                               </div>
-                            </div>
-                            <div className="flex-1 relative flex items-center bg-slate-50/50 min-w-max">
-                               {timelineRange.days.map((_, i) => <div key={i} className="w-14 shrink-0 h-full border-r border-slate-200/50"></div>)}
-                               {startIndex !== -1 && (
-                                 <div
-                                   className={`absolute h-8 rounded-xl flex items-center px-4 shadow-lg border border-white/30 z-10 transition-transform ${
-                                     task.status === 'Done' ? 'bg-green-600 text-white' :
-                                     task.status === 'In Progress' ? 'bg-slate-800 text-white' : 'bg-slate-400 text-white'
-                                   }`}
-                                   style={{ left: `${startIndex * 56}px`, width: `${duration * 56}px` }}
-                                 >
-                                   <span className="text-[9px] font-black uppercase truncate">
-                                     {task.status === 'Done' ? '완료' : task.status === 'In Progress' ? '진행중' : '대기'}
-                                   </span>
-                                 </div>
-                               )}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
+                            </td>
+                            <td className="px-8 py-5">
+                              <select value={task.status} onChange={e => updateWbsTask(task.id, {status: e.target.value as WbsStatus})} className="bg-transparent font-black text-slate-900 text-xs outline-none uppercase">
+                                <option value="Planning">대기</option>
+                                <option value="In Progress">진행중</option>
+                                <option value="Done">완료</option>
+                              </select>
+                            </td>
+                            <td className="px-8 py-5 text-right">
+                               <button onClick={() => {
+                                 const next = wbsTasks.filter(t => t.id !== task.id);
+                                 setWbsTasks(next);
+                                 saveToStorage(next, testCases);
+                               }} className="text-slate-300 hover:text-red-600 text-2xl font-black transition-colors">×</button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
-                ) : (
-                  <div className="p-20 text-center border-2 border-dashed border-slate-300 rounded-[3rem] bg-slate-50 text-slate-500 font-black uppercase tracking-widest">업무 데이터가 없습니다.</div>
                 )}
-
-                <div className="bg-white border border-slate-300 rounded-[2.5rem] overflow-hidden shadow-sm">
-                  <table className="w-full text-left">
-                    <thead className="bg-slate-100 text-[10px] font-black text-slate-800 uppercase tracking-widest border-b border-slate-300">
-                      <tr>
-                        <th className="px-8 py-5">상세 업무명</th>
-                        <th className="px-8 py-5">담당자</th>
-                        <th className="px-8 py-5">일정 (시작/종료)</th>
-                        <th className="px-8 py-5">상태</th>
-                        <th className="px-8 py-5"></th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-200">
-                      {wbsTasks.map(task => (
-                        <tr key={task.id} className="group hover:bg-slate-50">
-                          <td className="px-8 py-5">
-                            <input
-                              type="text"
-                              value={task.name}
-                              onChange={e => updateWbsTask(task.id, {name: e.target.value})}
-                              className="w-full bg-transparent font-black text-slate-900 text-sm outline-none focus:text-slate-900 border-b border-transparent focus:border-slate-300"
-                            />
-                            <input
-                              type="text"
-                              value={task.detail}
-                              onChange={e => updateWbsTask(task.id, {detail: e.target.value})}
-                              placeholder="상세 기술 내용..."
-                              className="w-full bg-transparent text-[11px] font-bold text-slate-500 mt-1 outline-none"
-                            />
-                          </td>
-                          <td className="px-8 py-5">
-                            <select value={task.assignee} onChange={e => updateWbsTask(task.id, {assignee: e.target.value})} className="bg-transparent font-black text-slate-900 text-xs outline-none cursor-pointer">
-                              {TEAM_MEMBERS.map(m => <option key={m}>{m}</option>)}
-                            </select>
-                          </td>
-                          <td className="px-8 py-5">
-                            <div className="flex flex-col gap-2">
-                              <input
-                                type="date"
-                                value={task.startDate}
-                                onChange={e => updateWbsTask(task.id, {startDate: e.target.value})}
-                                className="bg-slate-50 border border-slate-300 px-3 py-1.5 rounded-lg font-black text-slate-900 text-xs outline-none focus:ring-2 focus:ring-yellow-400"
-                              />
-                              <input
-                                type="date"
-                                value={task.endDate}
-                                onChange={e => updateWbsTask(task.id, {endDate: e.target.value})}
-                                className="bg-slate-50 border border-slate-300 px-3 py-1.5 rounded-lg font-black text-slate-900 text-xs outline-none focus:ring-2 focus:ring-yellow-400"
-                              />
-                            </div>
-                          </td>
-                          <td className="px-8 py-5">
-                            <select value={task.status} onChange={e => updateWbsTask(task.id, {status: e.target.value as WbsStatus})} className="bg-transparent font-black text-slate-900 text-xs outline-none uppercase">
-                              <option value="Planning">대기</option>
-                              <option value="In Progress">진행중</option>
-                              <option value="Done">완료</option>
-                            </select>
-                          </td>
-                          <td className="px-8 py-5 text-right">
-                             <button onClick={() => {
-                               const next = wbsTasks.filter(t => t.id !== task.id);
-                               setWbsTasks(next);
-                               saveToStorage(next, testCases);
-                             }} className="text-slate-300 hover:text-red-600 text-2xl font-black transition-colors">×</button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
               </div>
             ) : (
               <div className="space-y-10">
@@ -415,11 +407,6 @@ const DetailModal: React.FC<DetailModalProps> = ({ group, onClose }) => {
                               <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"></path></svg>
                               {tc.comments.length}
                             </span>
-                            {activeScreenId === null && tc.originScreenId && (
-                              <span className="text-[9px] bg-slate-900 text-white px-2 py-0.5 rounded-lg">
-                                {tc.originScreenId === group.parent.figmaId ? 'MAIN' : 'VAR'}
-                              </span>
-                            )}
                           </div>
                         </div>
                       </div>

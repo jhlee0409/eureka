@@ -3,23 +3,29 @@
 import React, { useState, useMemo } from 'react';
 import SetupForm from './components/SetupForm';
 import DetailModal from './components/DetailModal';
-import { FigmaAuth, ParsedState, ScreenGroup } from './types';
+import { CoverThumbnail } from './components/CoverThumbnail';
+import { FigmaAuth, PrefixGroup } from './types';
 import { fetchFigmaFile } from './services/figmaService';
 
 export default function Home() {
-  const [state, setState] = useState<ParsedState>({
+  const [state, setState] = useState<{
+    pages: Record<string, Record<string, PrefixGroup>>;
+    loading: boolean;
+    error: string | null;
+  }>({
     pages: {},
     loading: false,
     error: null
   });
 
-  const [selectedGroup, setSelectedGroup] = useState<ScreenGroup | null>(null);
+  const [selectedGroup, setSelectedGroup] = useState<PrefixGroup | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
   const handleSync = async (auth: FigmaAuth) => {
     setState(prev => ({ ...prev, loading: true, error: null }));
     try {
       const pages = await fetchFigmaFile(auth);
+      console.log(pages);
       const groupCount = Object.values(pages).reduce((acc, groups) => acc + Object.keys(groups).length, 0);
 
       if (groupCount === 0) {
@@ -36,13 +42,17 @@ export default function Home() {
   const filteredPages = useMemo(() => {
     if (!searchQuery) return state.pages;
     const query = searchQuery.toLowerCase();
-    const newPages: Record<string, Record<string, ScreenGroup>> = {};
+    const newPages: Record<string, Record<string, PrefixGroup>> = {};
 
     Object.entries(state.pages).forEach(([pageName, groups]) => {
-      const filteredGroups: Record<string, ScreenGroup> = {};
-      Object.entries(groups).forEach(([baseId, group]) => {
-        if (baseId.toLowerCase().includes(query) || group.parent.name.toLowerCase().includes(query) || group.parent.sectionName?.toLowerCase().includes(query)) {
-          filteredGroups[baseId] = group;
+      const filteredGroups: Record<string, PrefixGroup> = {};
+      Object.entries(groups).forEach(([prefix, group]) => {
+        // Search in prefix or any baseId
+        const matchesPrefix = prefix.toLowerCase().includes(query);
+        const matchesBaseId = Object.keys(group.baseIds).some(baseId => baseId.toLowerCase().includes(query));
+
+        if (matchesPrefix || matchesBaseId) {
+          filteredGroups[prefix] = group;
         }
       });
       if (Object.keys(filteredGroups).length > 0) newPages[pageName] = filteredGroups;
@@ -131,41 +141,44 @@ export default function Home() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-8">
-                  {Object.entries(groups).map(([baseId, group]) => (
-                    <div
-                      key={baseId}
-                      onClick={() => setSelectedGroup(group)}
-                      className="group bg-white rounded-[2rem] border border-slate-200 overflow-hidden hover:border-yellow-500 hover:shadow-2xl hover:shadow-yellow-500/10 transition-all duration-500 cursor-pointer flex flex-col relative"
-                    >
-                      <div className="aspect-[1.5/1] w-full bg-slate-50 overflow-hidden border-b border-slate-100 flex items-center justify-center relative">
-                        {group.parent.thumbnailUrl ? (
-                          <img
-                            src={group.parent.thumbnailUrl}
-                            alt={group.parent.name}
-                            className="w-full h-full object-contain p-6 group-hover:scale-105 transition-transform duration-700"
-                          />
-                        ) : (
-                          <div className="text-slate-300 italic font-bold">미리보기 없음</div>
-                        )}
-                        {group.parent.sectionName && (
+                  {Object.entries(groups).map(([prefix, group]) => {
+                    // Count total screens across all baseIds
+                    const totalScreens = Object.values(group.baseIds).reduce((acc, screens) => acc + screens.length, 0);
+                    const baseIdList = Object.keys(group.baseIds).join(', ');
+
+                    return (
+                      <div
+                        key={prefix}
+                        onClick={() => setSelectedGroup(group)}
+                        className="group bg-white rounded-[2rem] border border-slate-200 overflow-hidden hover:border-yellow-500 hover:shadow-2xl hover:shadow-yellow-500/10 transition-all duration-500 cursor-pointer flex flex-col relative"
+                      >
+                        <div className="aspect-[1.5/1] w-full bg-slate-50 overflow-hidden border-b border-slate-100 flex items-center justify-center relative">
+                          {group.coverData ? (
+                            <CoverThumbnail
+                              coverData={group.coverData}
+                              className="group-hover:scale-105 transition-transform duration-700"
+                            />
+                          ) : (
+                            <div className="text-slate-300 italic font-bold">No preview</div>
+                          )}
                           <div className="absolute top-4 left-4">
                             <span className="bg-slate-900 text-[9px] font-black px-3 py-1.5 rounded-xl border border-slate-700 text-yellow-400 uppercase tracking-widest shadow-lg">
-                              {group.parent.sectionName}
+                              {prefix}
                             </span>
                           </div>
-                        )}
-                      </div>
-
-                      <div className="p-8">
-                        <div className="flex items-center justify-between mb-4">
-                           <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider">{group.children.length + 1}개 화면</span>
-                           <span className="w-2 h-2 rounded-full bg-yellow-500"></span>
                         </div>
-                        <h3 className="text-lg font-black text-slate-900 group-hover:text-yellow-600 transition-colors tracking-tight uppercase leading-none">{baseId}</h3>
-                        <p className="text-[11px] text-slate-500 font-bold mt-2 truncate uppercase tracking-tight">{group.parent.name}</p>
+
+                        <div className="p-8">
+                          <div className="flex items-center justify-between mb-4">
+                             <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider">{totalScreens}개 화면</span>
+                             <span className="w-2 h-2 rounded-full bg-yellow-500"></span>
+                          </div>
+                          <h3 className="text-lg font-black text-slate-900 group-hover:text-yellow-600 transition-colors tracking-tight uppercase leading-none">{prefix} 섹션</h3>
+                          <p className="text-[11px] text-slate-500 font-bold mt-2 truncate uppercase tracking-tight">{baseIdList}</p>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </section>
             ))}

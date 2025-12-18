@@ -11,24 +11,67 @@ export interface FigmaNode {
   characters?: string; // For TEXT nodes
 }
 
+export interface TextStyleData {
+  characters: string;
+  fontFamily: string;
+  fontWeight: number;
+  fontSize: number;
+  color: {
+    r: number;
+    g: number;
+    b: number;
+    a: number;
+  };
+  textAlign: string;
+  position?: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  };
+}
+
+export interface CoverData {
+  backgroundColor: {
+    r: number;
+    g: number;
+    b: number;
+    a: number;
+  };
+  width: number;
+  height: number;
+  textNodes: TextStyleData[];
+}
+
 export interface ScreenData {
   id: string;
   figmaId: string;
   name: string;
   thumbnailUrl?: string;
   description: string;
+  screenInformation?: string; // Enhanced field for screen information
   baseId: string;
   suffix?: string;
   isParent: boolean;
   pageName: string;
   sectionName?: string;
   createdDate?: string;
+  coverData?: CoverData; // Cover page rendering data
 }
 
 export interface ScreenGroup {
   parent: ScreenData;
   children: ScreenData[];
   pageName: string;
+}
+
+export interface PrefixGroup {
+  prefix: string; // AUTO, PSET, LINK, etc.
+  baseIds: {
+    [baseId: string]: ScreenData[];  // AUTO_0002 -> [AUTO_0002_1, AUTO_0002_ㅅ, AUTO_0002_3, AUTO_0002_4]
+  };
+  pageName: string;
+  coverData?: CoverData;
 }
 
 export interface ParsedState {
