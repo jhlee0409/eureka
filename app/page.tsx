@@ -1,3 +1,4 @@
+'use client';
 
 import React, { useState, useMemo } from 'react';
 import SetupForm from './components/SetupForm';
@@ -5,7 +6,7 @@ import DetailModal from './components/DetailModal';
 import { FigmaAuth, ParsedState, ScreenGroup } from './types';
 import { fetchFigmaFile } from './services/figmaService';
 
-const App: React.FC = () => {
+export default function Home() {
   const [state, setState] = useState<ParsedState>({
     pages: {},
     loading: false,
@@ -20,14 +21,15 @@ const App: React.FC = () => {
     try {
       const pages = await fetchFigmaFile(auth);
       const groupCount = Object.values(pages).reduce((acc, groups) => acc + Object.keys(groups).length, 0);
-      
+
       if (groupCount === 0) {
         throw new Error("연결에 성공했으나, 명명 규칙(예: AUTO_0001)에 맞는 프레임을 찾을 수 없습니다. 피그마 프레임 이름을 확인해주세요.");
       }
-      
+
       setState({ pages, loading: false, error: null });
-    } catch (err: any) {
-      setState({ pages: {}, loading: false, error: err.message || '동기화 실패' });
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : '동기화 실패';
+      setState({ pages: {}, loading: false, error: errorMessage });
     }
   };
 
@@ -35,7 +37,7 @@ const App: React.FC = () => {
     if (!searchQuery) return state.pages;
     const query = searchQuery.toLowerCase();
     const newPages: Record<string, Record<string, ScreenGroup>> = {};
-    
+
     Object.entries(state.pages).forEach(([pageName, groups]) => {
       const filteredGroups: Record<string, ScreenGroup> = {};
       Object.entries(groups).forEach(([baseId, group]) => {
@@ -62,16 +64,16 @@ const App: React.FC = () => {
             <p className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-widest">화면 중심의 기획 & 품질 관리 통합 솔루션</p>
           </div>
         </div>
-        
+
         {totalGroups > 0 && (
           <div className="flex-1 max-w-2xl mx-16">
             <div className="relative group">
               <span className="absolute inset-y-0 left-0 flex items-center pl-5 text-slate-500 group-focus-within:text-yellow-400 transition-colors">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
               </span>
-              <input 
-                type="text" 
-                placeholder="화면 이름 또는 ID로 검색..." 
+              <input
+                type="text"
+                placeholder="화면 이름 또는 ID로 검색..."
                 className="w-full pl-14 pr-6 py-3.5 bg-slate-800/50 border border-slate-700 rounded-2xl text-sm font-medium focus:bg-slate-800 focus:ring-4 focus:ring-yellow-400/10 focus:border-yellow-400 outline-none transition-all placeholder:text-slate-500 text-white"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -82,7 +84,7 @@ const App: React.FC = () => {
 
         <div className="flex items-center gap-6">
           {totalGroups > 0 && (
-            <button 
+            <button
               onClick={() => setState({ pages: {}, loading: false, error: null })}
               className="text-[10px] font-black text-slate-400 hover:text-yellow-400 uppercase tracking-[0.2em] transition-all"
             >
@@ -130,16 +132,16 @@ const App: React.FC = () => {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-8">
                   {Object.entries(groups).map(([baseId, group]) => (
-                    <div 
+                    <div
                       key={baseId}
                       onClick={() => setSelectedGroup(group)}
                       className="group bg-white rounded-[2rem] border border-slate-200 overflow-hidden hover:border-yellow-500 hover:shadow-2xl hover:shadow-yellow-500/10 transition-all duration-500 cursor-pointer flex flex-col relative"
                     >
                       <div className="aspect-[1.5/1] w-full bg-slate-50 overflow-hidden border-b border-slate-100 flex items-center justify-center relative">
                         {group.parent.thumbnailUrl ? (
-                          <img 
-                            src={group.parent.thumbnailUrl} 
-                            alt={group.parent.name} 
+                          <img
+                            src={group.parent.thumbnailUrl}
+                            alt={group.parent.name}
                             className="w-full h-full object-contain p-6 group-hover:scale-105 transition-transform duration-700"
                           />
                         ) : (
@@ -153,7 +155,7 @@ const App: React.FC = () => {
                           </div>
                         )}
                       </div>
-                      
+
                       <div className="p-8">
                         <div className="flex items-center justify-between mb-4">
                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider">{group.children.length + 1}개 화면</span>
@@ -172,13 +174,11 @@ const App: React.FC = () => {
       </main>
 
       {selectedGroup && (
-        <DetailModal 
-          group={selectedGroup} 
-          onClose={() => setSelectedGroup(null)} 
+        <DetailModal
+          group={selectedGroup}
+          onClose={() => setSelectedGroup(null)}
         />
       )}
     </div>
   );
-};
-
-export default App;
+}

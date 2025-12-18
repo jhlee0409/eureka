@@ -1,7 +1,7 @@
+'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { ScreenGroup, ScreenData, WbsTask, TestCase, WbsStatus, QAStatus, QAPriority, QAPosition, Comment } from '../types';
-import { refineSpecifications } from '../services/geminiService';
 
 interface DetailModalProps {
   group: ScreenGroup;
@@ -13,10 +13,10 @@ const TEAM_MEMBERS = ['테스', '잭', '멜러리', '이리나', '미쉘', '션'
 const DetailModal: React.FC<DetailModalProps> = ({ group, onClose }) => {
   const [activeScreenId, setActiveScreenId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'wbs' | 'qa'>('wbs');
-  
+
   const [wbsTasks, setWbsTasks] = useState<WbsTask[]>([]);
   const [testCases, setTestCases] = useState<TestCase[]>([]);
-  
+
   const [editingQAId, setEditingQAId] = useState<string | null>(null);
   const [newComment, setNewComment] = useState('');
   const [selectedCommentUser, setSelectedCommentUser] = useState(TEAM_MEMBERS[0]);
@@ -37,20 +37,20 @@ const DetailModal: React.FC<DetailModalProps> = ({ group, onClose }) => {
       const allScreens = [group.parent, ...group.children];
       let aggregatedWbs: WbsTask[] = [];
       let aggregatedQa: TestCase[] = [];
-      
+
       allScreens.forEach(s => {
         const savedWbs = localStorage.getItem(`wbs_${s.figmaId}`);
         const savedQa = localStorage.getItem(`qa_${s.figmaId}`);
         if (savedWbs) {
-          const tasks = JSON.parse(savedWbs).map((t: any) => ({ ...t, originScreenId: s.figmaId }));
+          const tasks = JSON.parse(savedWbs).map((t: WbsTask) => ({ ...t, originScreenId: s.figmaId }));
           aggregatedWbs = [...aggregatedWbs, ...tasks];
         }
         if (savedQa) {
-          const cases = JSON.parse(savedQa).map((c: any) => ({ ...c, originScreenId: s.figmaId }));
+          const cases = JSON.parse(savedQa).map((c: TestCase) => ({ ...c, originScreenId: s.figmaId }));
           aggregatedQa = [...aggregatedQa, ...cases];
         }
       });
-      
+
       setWbsTasks(aggregatedWbs);
       setTestCases(aggregatedQa);
     } else {
@@ -107,14 +107,14 @@ const DetailModal: React.FC<DetailModalProps> = ({ group, onClose }) => {
 
     const minTime = Math.min(...startDates);
     const maxTime = Math.max(...endDates, minTime + 86400000 * 7);
-    
+
     const startDate = new Date(minTime);
     startDate.setDate(startDate.getDate() - 3);
     const endDate = new Date(maxTime);
     endDate.setDate(endDate.getDate() + 10);
-    
-    const days = [];
-    let current = new Date(startDate);
+
+    const days: Date[] = [];
+    const current = new Date(startDate);
     while (current <= endDate) {
       days.push(new Date(current));
       current.setDate(current.getDate() + 1);
@@ -184,23 +184,23 @@ const DetailModal: React.FC<DetailModalProps> = ({ group, onClose }) => {
         </div>
 
         <div className="flex items-center gap-2 bg-slate-200 p-1.5 rounded-2xl border border-slate-300 shadow-inner">
-          <button 
-            onClick={() => setActiveScreenId(null)} 
+          <button
+            onClick={() => setActiveScreenId(null)}
             className={`px-5 py-2 rounded-xl text-[11px] font-black transition-all ${activeScreenId === null ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-600 hover:text-slate-900'}`}
           >
             종합 (MASTER)
           </button>
           <div className="w-px h-4 bg-slate-400 mx-1"></div>
-          <button 
-            onClick={() => setActiveScreenId(group.parent.figmaId)} 
+          <button
+            onClick={() => setActiveScreenId(group.parent.figmaId)}
             className={`px-4 py-2 rounded-xl text-[11px] font-black transition-all ${activeScreenId === group.parent.figmaId ? 'bg-white text-slate-900 shadow-md border border-slate-300' : 'text-slate-600 hover:text-slate-900'}`}
           >
             메인
           </button>
           {group.children.map((child, idx) => (
-            <button 
-              key={child.id} 
-              onClick={() => setActiveScreenId(child.figmaId)} 
+            <button
+              key={child.id}
+              onClick={() => setActiveScreenId(child.figmaId)}
               className={`px-4 py-2 rounded-xl text-[11px] font-black transition-all ${activeScreenId === child.figmaId ? 'bg-white text-slate-900 shadow-md border border-slate-300' : 'text-slate-600 hover:text-slate-900'}`}
             >
               V{idx + 1}
@@ -277,8 +277,8 @@ const DetailModal: React.FC<DetailModalProps> = ({ group, onClose }) => {
                         return (
                           <div key={task.id} className="flex border-b border-slate-200 group hover:bg-slate-50 transition-colors">
                             <div className="w-56 shrink-0 border-r border-slate-300 p-4 flex flex-col justify-center gap-1 bg-white group-hover:bg-slate-50">
-                              <input 
-                                value={task.name} 
+                              <input
+                                value={task.name}
                                 onChange={e => updateWbsTask(task.id, {name: e.target.value})}
                                 className="text-[12px] font-black text-slate-900 bg-transparent outline-none focus:text-yellow-600"
                               />
@@ -294,9 +294,9 @@ const DetailModal: React.FC<DetailModalProps> = ({ group, onClose }) => {
                             <div className="flex-1 relative flex items-center bg-slate-50/50 min-w-max">
                                {timelineRange.days.map((_, i) => <div key={i} className="w-14 shrink-0 h-full border-r border-slate-200/50"></div>)}
                                {startIndex !== -1 && (
-                                 <div 
+                                 <div
                                    className={`absolute h-8 rounded-xl flex items-center px-4 shadow-lg border border-white/30 z-10 transition-transform ${
-                                     task.status === 'Done' ? 'bg-green-600 text-white' : 
+                                     task.status === 'Done' ? 'bg-green-600 text-white' :
                                      task.status === 'In Progress' ? 'bg-slate-800 text-white' : 'bg-slate-400 text-white'
                                    }`}
                                    style={{ left: `${startIndex * 56}px`, width: `${duration * 56}px` }}
@@ -331,15 +331,15 @@ const DetailModal: React.FC<DetailModalProps> = ({ group, onClose }) => {
                       {wbsTasks.map(task => (
                         <tr key={task.id} className="group hover:bg-slate-50">
                           <td className="px-8 py-5">
-                            <input 
+                            <input
                               type="text"
-                              value={task.name} 
+                              value={task.name}
                               onChange={e => updateWbsTask(task.id, {name: e.target.value})}
                               className="w-full bg-transparent font-black text-slate-900 text-sm outline-none focus:text-slate-900 border-b border-transparent focus:border-slate-300"
                             />
-                            <input 
+                            <input
                               type="text"
-                              value={task.detail} 
+                              value={task.detail}
                               onChange={e => updateWbsTask(task.id, {detail: e.target.value})}
                               placeholder="상세 기술 내용..."
                               className="w-full bg-transparent text-[11px] font-bold text-slate-500 mt-1 outline-none"
@@ -352,17 +352,17 @@ const DetailModal: React.FC<DetailModalProps> = ({ group, onClose }) => {
                           </td>
                           <td className="px-8 py-5">
                             <div className="flex flex-col gap-2">
-                              <input 
-                                type="date" 
-                                value={task.startDate} 
-                                onChange={e => updateWbsTask(task.id, {startDate: e.target.value})} 
-                                className="bg-slate-50 border border-slate-300 px-3 py-1.5 rounded-lg font-black text-slate-900 text-xs outline-none focus:ring-2 focus:ring-yellow-400" 
+                              <input
+                                type="date"
+                                value={task.startDate}
+                                onChange={e => updateWbsTask(task.id, {startDate: e.target.value})}
+                                className="bg-slate-50 border border-slate-300 px-3 py-1.5 rounded-lg font-black text-slate-900 text-xs outline-none focus:ring-2 focus:ring-yellow-400"
                               />
-                              <input 
-                                type="date" 
-                                value={task.endDate} 
-                                onChange={e => updateWbsTask(task.id, {endDate: e.target.value})} 
-                                className="bg-slate-50 border border-slate-300 px-3 py-1.5 rounded-lg font-black text-slate-900 text-xs outline-none focus:ring-2 focus:ring-yellow-400" 
+                              <input
+                                type="date"
+                                value={task.endDate}
+                                onChange={e => updateWbsTask(task.id, {endDate: e.target.value})}
+                                className="bg-slate-50 border border-slate-300 px-3 py-1.5 rounded-lg font-black text-slate-900 text-xs outline-none focus:ring-2 focus:ring-yellow-400"
                               />
                             </div>
                           </td>
@@ -443,7 +443,7 @@ const DetailModal: React.FC<DetailModalProps> = ({ group, onClose }) => {
                  <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest">상세 인스펙터</h3>
                  <button onClick={() => setEditingQAId(null)} className="p-2 hover:bg-white rounded-xl border border-transparent hover:border-slate-300 transition-all"><svg className="w-6 h-6 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M6 18L18 6M6 6l12 12"></path></svg></button>
                </div>
-               
+
                <div className="flex-1 overflow-y-auto custom-scrollbar p-10 space-y-12">
                   <div className="space-y-3">
                     <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block">이슈 요약</label>
@@ -484,7 +484,7 @@ const DetailModal: React.FC<DetailModalProps> = ({ group, onClose }) => {
 
                   <div className="space-y-4">
                     <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block">상세 내용 및 원인</label>
-                    <textarea 
+                    <textarea
                       value={editingQA.issueContent} onChange={e => updateTestCase(editingQA.id, {issueContent: e.target.value})}
                       className="w-full bg-slate-50 p-6 rounded-[2rem] text-sm font-bold leading-relaxed text-slate-900 outline-none focus:bg-white border-2 border-transparent focus:border-slate-900 min-h-[150px] shadow-inner"
                       placeholder="결함 원인 또는 기획 요구사항을 상세히 작성하세요..."
@@ -496,7 +496,7 @@ const DetailModal: React.FC<DetailModalProps> = ({ group, onClose }) => {
                        <svg className="w-5 h-5 text-slate-900" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z"></path></svg>
                        활동 로그
                     </h4>
-                    
+
                     <div className="space-y-6">
                       {editingQA.comments.map(c => (
                         <div key={c.id} className="flex flex-col animate-in fade-in slide-in-from-left duration-300">
@@ -520,11 +520,11 @@ const DetailModal: React.FC<DetailModalProps> = ({ group, onClose }) => {
                          </select>
                        </div>
                        <div className="flex gap-4">
-                         <input 
+                         <input
                            value={newComment} onChange={e => setNewComment(e.target.value)}
                            onKeyDown={e => e.key === 'Enter' && handleAddComment()}
-                           placeholder="진행 상황을 입력하세요..." 
-                           className="flex-1 bg-white p-4 rounded-2xl text-sm font-bold outline-none border-2 border-slate-200 focus:border-slate-900 transition-all text-slate-900" 
+                           placeholder="진행 상황을 입력하세요..."
+                           className="flex-1 bg-white p-4 rounded-2xl text-sm font-bold outline-none border-2 border-slate-200 focus:border-slate-900 transition-all text-slate-900"
                          />
                          <button onClick={handleAddComment} className="bg-slate-900 text-white p-4 rounded-2xl hover:bg-black transition-all shadow-xl">
                             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 12h14M12 5l7 7-7 7"></path></svg>
