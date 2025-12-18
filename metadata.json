@@ -1,0 +1,5 @@
+{
+  "name": "Screen Base",
+  "description": "A high-performance Figma-to-Task management dashboard that parses Figma designs into organized Parent-Child screen hierarchies with AI-enhanced QA checklist extraction.",
+  "requestFramePermissions": []
+}
