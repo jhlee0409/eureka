@@ -10,12 +10,13 @@ type ApiType = 'auto' | 'file' | 'nodes' | 'project' | 'team-projects' | 'images
 interface ParsedScreenData {
   nodeId: string;
   nodePath: string;
+  nodeName: string;
   screenId?: string;
   createdDate?: string;
   screenInformation?: string;
   description?: string;
-  rawGroups: Array<{ name: string; characters?: string }>;
-  rawFrame: { name: string; children: Array<{ name: string; characters?: string }> } | null;
+  allTextNodes: Array<{ name: string; characters?: string; type: string; parentName: string }>;
+  labelValuePairs: Array<{ label: string; value: string }>;
 }
 
 interface FigmaNode {
@@ -26,93 +27,156 @@ interface FigmaNode {
   characters?: string;
 }
 
-// Helper: Find text content by name pattern in children
-function findTextByName(node: FigmaNode, patterns: string[]): string | undefined {
-  if (node.type === 'TEXT') {
-    const nameLower = node.name.toLowerCase();
-    if (patterns.some(p => nameLower.includes(p.toLowerCase()))) {
-      return node.characters;
-    }
+// Label patterns for extraction
+const LABEL_PATTERNS = {
+  screenId: ['화면 ID', 'screen id', 'screenid', '화면id', '화면 아이디'],
+  createdDate: ['작성일', 'date', 'created', '날짜', '작성 일자', '생성일'],
+  screenInformation: ['screen information', 'screeninformation', '화면 정보', '스크린 정보', '화면정보'],
+  description: ['description', 'desc', '설명', '기획', 'spec', '상세 설명', '기획안'],
+};
+
+// Helper: Collect all TEXT nodes with parent info
+function collectAllTextNodes(
+  node: FigmaNode,
+  parentName: string = ''
+): Array<{ name: string; characters?: string; type: string; parentName: string }> {
+  const texts: Array<{ name: string; characters?: string; type: string; parentName: string }> = [];
+
+  if (node.type === 'TEXT' && node.characters) {
+    texts.push({
+      name: node.name,
+      characters: node.characters,
+      type: node.type,
+      parentName,
+    });
   }
+
   if (node.children) {
     for (const child of node.children) {
-      const found = findTextByName(child, patterns);
-      if (found) return found;
-    }
-  }
-  return undefined;
-}
-
-// Helper: Collect all TEXT nodes from a node
-function collectTextNodes(node: FigmaNode): Array<{ name: string; characters?: string }> {
-  const texts: Array<{ name: string; characters?: string }> = [];
-
-  if (node.type === 'TEXT') {
-    texts.push({ name: node.name, characters: node.characters });
-  }
-
-  if (node.children) {
-    for (const child of node.children) {
-      texts.push(...collectTextNodes(child));
+      texts.push(...collectAllTextNodes(child, node.name));
     }
   }
 
   return texts;
 }
 
-// Parse screen data from node structure
+// Helper: Find label-value pairs from text nodes
+// Pattern: If a text's characters matches a label, the NEXT text's characters is the value
+function extractLabelValuePairs(
+  textNodes: Array<{ name: string; characters?: string }>
+): Array<{ label: string; value: string }> {
+  const pairs: Array<{ label: string; value: string }> = [];
+  const allLabels = Object.values(LABEL_PATTERNS).flat();
+
+  for (let i = 0; i < textNodes.length; i++) {
+    const current = textNodes[i];
+    const currentText = (current.characters || current.name || '').toLowerCase().trim();
+
+    // Check if current text is a label
+    const isLabel = allLabels.some(label => currentText === label.toLowerCase());
+
+    if (isLabel && i + 1 < textNodes.length) {
+      const nextNode = textNodes[i + 1];
+      const nextText = (nextNode.characters || nextNode.name || '').trim();
+
+      // Make sure next text is not also a label
+      const nextIsLabel = allLabels.some(label => nextText.toLowerCase() === label.toLowerCase());
+
+      if (!nextIsLabel && nextText) {
+        pairs.push({
+          label: current.characters || current.name || '',
+          value: nextText,
+        });
+      }
+    }
+  }
+
+  return pairs;
+}
+
+// Helper: Extract specific field value from pairs or text nodes
+function extractFieldValue(
+  pairs: Array<{ label: string; value: string }>,
+  textNodes: Array<{ name: string; characters?: string }>,
+  patterns: string[]
+): string | undefined {
+  // First try to find from label-value pairs
+  for (const pair of pairs) {
+    if (patterns.some(p => pair.label.toLowerCase().includes(p.toLowerCase()))) {
+      return pair.value;
+    }
+  }
+
+  // Fallback: find from text node names
+  for (const node of textNodes) {
+    const nameLower = (node.name || '').toLowerCase();
+    if (patterns.some(p => nameLower.includes(p.toLowerCase()))) {
+      // Return characters if different from name, otherwise skip (it's just a label)
+      if (node.characters && node.characters.toLowerCase() !== nameLower) {
+        return node.characters;
+      }
+    }
+  }
+
+  return undefined;
+}
+
+// Parse screen data from node structure - targets CANVAS children
 function parseScreenData(
   node: FigmaNode,
   path: string = '',
   results: ParsedScreenData[] = []
 ): ParsedScreenData[] {
-  const currentPath = path ? `${path}.${node.name}` : node.name;
+  const currentPath = path ? `${path}.children` : node.name;
 
-  // Check if this node has the expected structure (children with Groups and Frame)
-  if (node.children && node.children.length >= 2) {
+  // If this is a CANVAS, parse its direct children as potential screens
+  if (node.type === 'CANVAS' && node.children) {
+    // Collect all text nodes from the entire CANVAS
+    const allTextNodes = collectAllTextNodes(node);
+    const labelValuePairs = extractLabelValuePairs(allTextNodes);
+
+    const screenData: ParsedScreenData = {
+      nodeId: node.id,
+      nodePath: currentPath,
+      nodeName: node.name,
+      allTextNodes,
+      labelValuePairs,
+    };
+
+    // Extract specific fields
+    screenData.screenId = extractFieldValue(labelValuePairs, allTextNodes, LABEL_PATTERNS.screenId);
+    screenData.createdDate = extractFieldValue(labelValuePairs, allTextNodes, LABEL_PATTERNS.createdDate);
+    screenData.screenInformation = extractFieldValue(labelValuePairs, allTextNodes, LABEL_PATTERNS.screenInformation);
+    screenData.description = extractFieldValue(labelValuePairs, allTextNodes, LABEL_PATTERNS.description);
+
+    results.push(screenData);
+  }
+
+  // Also check for SECTION or FRAME with children that might be screen containers
+  if ((node.type === 'SECTION' || node.type === 'FRAME') && node.children && node.children.length > 0) {
     const groups = node.children.filter(c => c.type === 'GROUP');
     const frames = node.children.filter(c => c.type === 'FRAME');
 
-    // If we have both Groups and Frames, parse them
-    if (groups.length >= 1 && frames.length >= 1) {
-      const screenData: ParsedScreenData = {
-        nodeId: node.id,
-        nodePath: currentPath,
-        rawGroups: [],
-        rawFrame: null,
-      };
+    // If this node has the expected structure (multiple groups + frame)
+    if (groups.length >= 1 || frames.length >= 1) {
+      const allTextNodes = collectAllTextNodes(node);
+      const labelValuePairs = extractLabelValuePairs(allTextNodes);
 
-      // Parse Groups - extract 화면 ID, 작성일
-      for (const group of groups) {
-        const textNodes = collectTextNodes(group);
-        screenData.rawGroups.push(...textNodes);
+      // Only add if we have meaningful data
+      if (allTextNodes.length > 0) {
+        const screenData: ParsedScreenData = {
+          nodeId: node.id,
+          nodePath: `${currentPath}.${node.name}`,
+          nodeName: node.name,
+          allTextNodes,
+          labelValuePairs,
+        };
 
-        // Try to find specific fields
-        const screenIdText = findTextByName(group, ['화면 ID', 'screen id', 'screenid', 'id']);
-        const dateText = findTextByName(group, ['작성일', 'date', 'created', '날짜']);
+        screenData.screenId = extractFieldValue(labelValuePairs, allTextNodes, LABEL_PATTERNS.screenId);
+        screenData.createdDate = extractFieldValue(labelValuePairs, allTextNodes, LABEL_PATTERNS.createdDate);
+        screenData.screenInformation = extractFieldValue(labelValuePairs, allTextNodes, LABEL_PATTERNS.screenInformation);
+        screenData.description = extractFieldValue(labelValuePairs, allTextNodes, LABEL_PATTERNS.description);
 
-        if (screenIdText) screenData.screenId = screenIdText;
-        if (dateText) screenData.createdDate = dateText;
-      }
-
-      // Parse Frame - extract Screen Information, Description
-      for (const frame of frames) {
-        const textNodes = collectTextNodes(frame);
-
-        if (!screenData.rawFrame) {
-          screenData.rawFrame = { name: frame.name, children: textNodes };
-        }
-
-        const screenInfoText = findTextByName(frame, ['screen information', 'screeninformation', '화면 정보', '스크린 정보']);
-        const descText = findTextByName(frame, ['description', 'desc', '설명', '기획', 'spec']);
-
-        if (screenInfoText) screenData.screenInformation = screenInfoText;
-        if (descText) screenData.description = descText;
-      }
-
-      // Only add if we found some data
-      if (screenData.screenId || screenData.createdDate || screenData.screenInformation || screenData.description ||
-          screenData.rawGroups.length > 0 || screenData.rawFrame) {
         results.push(screenData);
       }
     }
@@ -464,7 +528,7 @@ export default function FigmaTestPage() {
                 {parsedData.length === 0 ? (
                   <div className="text-center py-12">
                     <p className="text-slate-500 font-medium">파싱된 화면 데이터가 없습니다.</p>
-                    <p className="text-xs text-slate-600 mt-2">Groups와 Frame 구조를 가진 노드를 찾지 못했습니다.</p>
+                    <p className="text-xs text-slate-600 mt-2">CANVAS, SECTION, FRAME 구조를 가진 노드를 찾지 못했습니다.</p>
                   </div>
                 ) : (
                   <div className="space-y-6">
@@ -474,7 +538,7 @@ export default function FigmaTestPage() {
                         <div className="px-5 py-4 border-b border-slate-700/50 bg-slate-800/30">
                           <div className="flex items-center justify-between">
                             <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-                              Screen #{idx + 1}
+                              Screen #{idx + 1}: {screen.nodeName}
                             </span>
                             <span className="text-[10px] font-mono text-slate-600">{screen.nodeId}</span>
                           </div>
@@ -521,25 +585,25 @@ export default function FigmaTestPage() {
                             </p>
                           </div>
 
-                          {/* Raw Groups Data */}
-                          {screen.rawGroups.length > 0 && (
+                          {/* Label-Value Pairs */}
+                          {screen.labelValuePairs.length > 0 && (
                             <div>
-                              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">
-                                Groups Text Nodes ({screen.rawGroups.length})
+                              <label className="block text-[10px] font-bold text-green-400 uppercase tracking-wider mb-2">
+                                Detected Label-Value Pairs ({screen.labelValuePairs.length})
                               </label>
                               <div className="bg-slate-900 rounded-lg p-3 max-h-40 overflow-auto">
                                 <table className="w-full text-xs">
                                   <thead>
                                     <tr className="text-slate-500 uppercase tracking-wider">
-                                      <th className="text-left pb-2 font-bold">Name</th>
-                                      <th className="text-left pb-2 font-bold">Characters</th>
+                                      <th className="text-left pb-2 font-bold">Label</th>
+                                      <th className="text-left pb-2 font-bold">Value</th>
                                     </tr>
                                   </thead>
                                   <tbody className="text-slate-300">
-                                    {screen.rawGroups.map((g, i) => (
+                                    {screen.labelValuePairs.map((pair, i) => (
                                       <tr key={i} className="border-t border-slate-800">
-                                        <td className="py-1.5 pr-4 font-mono text-cyan-400">{g.name}</td>
-                                        <td className="py-1.5 font-medium">{g.characters || '-'}</td>
+                                        <td className="py-1.5 pr-4 font-mono text-green-400">{pair.label}</td>
+                                        <td className="py-1.5 font-medium text-white">{pair.value}</td>
                                       </tr>
                                     ))}
                                   </tbody>
@@ -548,25 +612,27 @@ export default function FigmaTestPage() {
                             </div>
                           )}
 
-                          {/* Raw Frame Data */}
-                          {screen.rawFrame && (
+                          {/* All Text Nodes */}
+                          {screen.allTextNodes.length > 0 && (
                             <div>
                               <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">
-                                Frame: {screen.rawFrame.name} ({screen.rawFrame.children.length} texts)
+                                All Text Nodes ({screen.allTextNodes.length})
                               </label>
-                              <div className="bg-slate-900 rounded-lg p-3 max-h-40 overflow-auto">
+                              <div className="bg-slate-900 rounded-lg p-3 max-h-60 overflow-auto">
                                 <table className="w-full text-xs">
                                   <thead>
                                     <tr className="text-slate-500 uppercase tracking-wider">
+                                      <th className="text-left pb-2 font-bold">Parent</th>
                                       <th className="text-left pb-2 font-bold">Name</th>
                                       <th className="text-left pb-2 font-bold">Characters</th>
                                     </tr>
                                   </thead>
                                   <tbody className="text-slate-300">
-                                    {screen.rawFrame.children.map((t, i) => (
+                                    {screen.allTextNodes.map((t, i) => (
                                       <tr key={i} className="border-t border-slate-800">
-                                        <td className="py-1.5 pr-4 font-mono text-green-400">{t.name}</td>
-                                        <td className="py-1.5 font-medium whitespace-pre-wrap">{t.characters || '-'}</td>
+                                        <td className="py-1.5 pr-2 font-mono text-purple-400 text-[10px]">{t.parentName || '-'}</td>
+                                        <td className="py-1.5 pr-2 font-mono text-cyan-400 max-w-[150px] truncate">{t.name}</td>
+                                        <td className="py-1.5 font-medium whitespace-pre-wrap max-w-[300px] truncate">{t.characters || '-'}</td>
                                       </tr>
                                     ))}
                                   </tbody>
