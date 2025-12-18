@@ -38,11 +38,16 @@ const LABEL_PATTERNS = {
 // Helper: Collect all TEXT nodes with parent info
 function collectAllTextNodes(
   node: FigmaNode,
-  parentName: string = ''
+  parentName: string = '',
+  depth: number = 0
 ): Array<{ name: string; characters?: string; type: string; parentName: string }> {
   const texts: Array<{ name: string; characters?: string; type: string; parentName: string }> = [];
 
+  // Log node traversal
+  console.log(`${'  '.repeat(depth)}[${node.type}] "${node.name}" (id: ${node.id})`);
+
   if (node.type === 'TEXT' && node.characters) {
+    console.log(`${'  '.repeat(depth)}  → TEXT found: "${node.characters?.substring(0, 50)}..."`);
     texts.push({
       name: node.name,
       characters: node.characters,
@@ -52,8 +57,9 @@ function collectAllTextNodes(
   }
 
   if (node.children) {
+    console.log(`${'  '.repeat(depth)}  → Has ${node.children.length} children`);
     for (const child of node.children) {
-      texts.push(...collectAllTextNodes(child, node.name));
+      texts.push(...collectAllTextNodes(child, node.name, depth + 1));
     }
   }
 
@@ -68,12 +74,18 @@ function extractLabelValuePairs(
   const pairs: Array<{ label: string; value: string }> = [];
   const allLabels = Object.values(LABEL_PATTERNS).flat();
 
+  console.log('\n=== extractLabelValuePairs ===');
+  console.log('Total text nodes:', textNodes.length);
+  console.log('Looking for labels:', allLabels);
+
   for (let i = 0; i < textNodes.length; i++) {
     const current = textNodes[i];
     const currentText = (current.characters || current.name || '').toLowerCase().trim();
 
     // Check if current text is a label
     const isLabel = allLabels.some(label => currentText === label.toLowerCase());
+
+    console.log(`[${i}] name="${current.name}" chars="${current.characters?.substring(0, 30)}..." isLabel=${isLabel}`);
 
     if (isLabel && i + 1 < textNodes.length) {
       const nextNode = textNodes[i + 1];
@@ -82,7 +94,10 @@ function extractLabelValuePairs(
       // Make sure next text is not also a label
       const nextIsLabel = allLabels.some(label => nextText.toLowerCase() === label.toLowerCase());
 
+      console.log(`  → Next node: "${nextText?.substring(0, 30)}..." nextIsLabel=${nextIsLabel}`);
+
       if (!nextIsLabel && nextText) {
+        console.log(`  → PAIR FOUND: "${currentText}" = "${nextText.substring(0, 50)}..."`);
         pairs.push({
           label: current.characters || current.name || '',
           value: nextText,
@@ -91,6 +106,7 @@ function extractLabelValuePairs(
     }
   }
 
+  console.log('Total pairs found:', pairs.length);
   return pairs;
 }
 
@@ -129,10 +145,15 @@ function parseScreenData(
 ): ParsedScreenData[] {
   const currentPath = path ? `${path}.children` : node.name;
 
+  console.log(`\n--- parseScreenData: [${node.type}] "${node.name}" ---`);
+
   // If this is a CANVAS, parse its direct children as potential screens
   if (node.type === 'CANVAS' && node.children) {
+    console.log('→ CANVAS detected, collecting all text nodes...');
     // Collect all text nodes from the entire CANVAS
     const allTextNodes = collectAllTextNodes(node);
+    console.log(`→ Collected ${allTextNodes.length} text nodes from CANVAS`);
+
     const labelValuePairs = extractLabelValuePairs(allTextNodes);
 
     const screenData: ParsedScreenData = {
@@ -149,6 +170,12 @@ function parseScreenData(
     screenData.screenInformation = extractFieldValue(labelValuePairs, allTextNodes, LABEL_PATTERNS.screenInformation);
     screenData.description = extractFieldValue(labelValuePairs, allTextNodes, LABEL_PATTERNS.description);
 
+    console.log('→ Extracted fields:');
+    console.log('  screenId:', screenData.screenId);
+    console.log('  createdDate:', screenData.createdDate);
+    console.log('  screenInformation:', screenData.screenInformation?.substring(0, 50));
+    console.log('  description:', screenData.description?.substring(0, 50));
+
     results.push(screenData);
   }
 
@@ -157,9 +184,13 @@ function parseScreenData(
     const groups = node.children.filter(c => c.type === 'GROUP');
     const frames = node.children.filter(c => c.type === 'FRAME');
 
+    console.log(`→ ${node.type} has ${groups.length} GROUPs, ${frames.length} FRAMEs`);
+
     // If this node has the expected structure (multiple groups + frame)
     if (groups.length >= 1 || frames.length >= 1) {
       const allTextNodes = collectAllTextNodes(node);
+      console.log(`→ Collected ${allTextNodes.length} text nodes from ${node.type}`);
+
       const labelValuePairs = extractLabelValuePairs(allTextNodes);
 
       // Only add if we have meaningful data
@@ -176,6 +207,12 @@ function parseScreenData(
         screenData.createdDate = extractFieldValue(labelValuePairs, allTextNodes, LABEL_PATTERNS.createdDate);
         screenData.screenInformation = extractFieldValue(labelValuePairs, allTextNodes, LABEL_PATTERNS.screenInformation);
         screenData.description = extractFieldValue(labelValuePairs, allTextNodes, LABEL_PATTERNS.description);
+
+        console.log('→ Extracted fields:');
+        console.log('  screenId:', screenData.screenId);
+        console.log('  createdDate:', screenData.createdDate);
+        console.log('  screenInformation:', screenData.screenInformation?.substring(0, 50));
+        console.log('  description:', screenData.description?.substring(0, 50));
 
         results.push(screenData);
       }
@@ -196,11 +233,20 @@ function parseScreenData(
 function parseApiResponse(response: Record<string, unknown>): ParsedScreenData[] {
   const results: ParsedScreenData[] = [];
 
+  console.log('\n========================================');
+  console.log('=== parseApiResponse START ===');
+  console.log('Response keys:', Object.keys(response));
+
   // Handle nodes API response: { nodes: { "nodeId": { document: {...} } } }
   if (response.nodes && typeof response.nodes === 'object') {
     const nodes = response.nodes as Record<string, { document?: FigmaNode }>;
+    console.log('Found nodes API response. Node IDs:', Object.keys(nodes));
     for (const [nodeId, nodeData] of Object.entries(nodes)) {
       if (nodeData.document) {
+        console.log(`\nProcessing node: ${nodeId}`);
+        console.log('Document type:', nodeData.document.type);
+        console.log('Document name:', nodeData.document.name);
+        console.log('Document children count:', nodeData.document.children?.length || 0);
         parseScreenData(nodeData.document, `nodes.${nodeId}.document`, results);
       }
     }
@@ -208,8 +254,13 @@ function parseApiResponse(response: Record<string, unknown>): ParsedScreenData[]
 
   // Handle file API response: { document: {...} }
   if (response.document && typeof response.document === 'object') {
+    console.log('Found file API response');
     parseScreenData(response.document as FigmaNode, 'document', results);
   }
+
+  console.log('\n=== parseApiResponse END ===');
+  console.log('Total results:', results.length);
+  console.log('========================================\n');
 
   return results;
 }
