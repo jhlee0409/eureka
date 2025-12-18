@@ -476,6 +476,62 @@ export default function FigmaTestPage() {
           </div>
         )}
 
+        {/* File Metadata & Thumbnail */}
+        {response && (typeof response.name === 'string' || typeof response.thumbnailUrl === 'string') && (
+          <div className="bg-slate-800/50 rounded-2xl border border-slate-700 p-6 mb-6">
+            <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-4">File Metadata</h3>
+            <div className="flex gap-6">
+              {/* Thumbnail */}
+              {typeof response.thumbnailUrl === 'string' && (
+                <div className="flex-shrink-0">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={response.thumbnailUrl}
+                    alt="Figma Thumbnail"
+                    className="w-40 h-28 object-cover rounded-xl border border-slate-700 bg-slate-900"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = 'none';
+                    }}
+                  />
+                </div>
+              )}
+              {/* Metadata */}
+              <div className="flex-1 grid grid-cols-2 gap-4">
+                {typeof response.name === 'string' && (
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Name</label>
+                    <p className="text-sm text-white font-medium">{response.name}</p>
+                  </div>
+                )}
+                {typeof response.lastModified === 'string' && (
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Last Modified</label>
+                    <p className="text-sm text-white font-medium">{response.lastModified}</p>
+                  </div>
+                )}
+                {typeof response.version === 'string' && (
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Version</label>
+                    <p className="text-sm text-slate-400 font-mono text-xs">{response.version}</p>
+                  </div>
+                )}
+                {typeof response.role === 'string' && (
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Role</label>
+                    <p className="text-sm text-white font-medium">{response.role}</p>
+                  </div>
+                )}
+                {typeof response.editorType === 'string' && (
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Editor Type</label>
+                    <p className="text-sm text-white font-medium">{response.editorType}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Error Display */}
         {error && (
           <div className="bg-red-500/10 border border-red-500/30 rounded-2xl p-6 mb-6">
