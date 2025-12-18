@@ -1,4 +1,3 @@
-
 export interface FigmaAuth {
   personalAccessToken: string;
   fileKey: string;

@@ -1,4 +1,3 @@
-
 import { FigmaAuth, FigmaNode, ScreenData, ScreenGroup } from '../types';
 
 const FIGMA_API_BASE = 'https://api.figma.com/v1';
@@ -35,14 +34,14 @@ const extractDate = (text: string): string | undefined => {
 };
 
 const parseFrames = (
-  node: FigmaNode, 
-  screens: ScreenData[], 
+  node: FigmaNode,
+  screens: ScreenData[],
   context: { page: string; section?: string; date?: string } = { page: 'Default' }
 ) => {
   const REGEX = /^([A-Z]+_[0-9]+)(_([0-9]+))?$/;
   const nodeName = (node.name || '').trim();
   const nextContext = { ...context };
-  
+
   // Try to find a date in the current container's name
   const foundDate = extractDate(nodeName);
   if (foundDate) nextContext.date = foundDate;
@@ -83,19 +82,19 @@ export const fetchFigmaFile = async (auth: FigmaAuth): Promise<Record<string, Re
   const { fileKey, nodeId } = extractFigmaInfo(auth.fileKey);
   if (!fileKey) throw new Error("Invalid Figma File Key");
 
-  const endpoint = nodeId 
+  const endpoint = nodeId
     ? `${FIGMA_API_BASE}/files/${fileKey}/nodes?ids=${nodeId}`
     : `${FIGMA_API_BASE}/files/${fileKey}`;
 
   const response = await fetch(endpoint, {
     headers: { 'X-Figma-Token': auth.personalAccessToken }
   });
-  
+
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
     throw new Error(`Figma API returned ${response.status}: ${errorData.err || response.statusText}`);
   }
-  
+
   const data = await response.json();
   const rawScreens: ScreenData[] = [];
 
@@ -142,8 +141,8 @@ export const fetchFigmaFile = async (auth: FigmaAuth): Promise<Record<string, Re
     if (page && page[child.baseId]) {
       page[child.baseId].children.push(child);
     } else if (page) {
-      page[child.baseId] = { 
-        parent: { ...child, isParent: true, name: `${child.baseId} (Parent Missing)` }, 
+      page[child.baseId] = {
+        parent: { ...child, isParent: true, name: `${child.baseId} (Parent Missing)` },
         children: [child],
         pageName: child.pageName
       };
