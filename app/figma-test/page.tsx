@@ -1,10 +1,154 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 
 const FIGMA_API_BASE = 'https://api.figma.com/v1';
 
 type ApiType = 'auto' | 'file' | 'nodes' | 'project' | 'team-projects' | 'images';
+
+// Parsed screen data structure
+interface ParsedScreenData {
+  nodeId: string;
+  nodePath: string;
+  screenId?: string;
+  createdDate?: string;
+  screenInformation?: string;
+  description?: string;
+  rawGroups: Array<{ name: string; characters?: string }>;
+  rawFrame: { name: string; children: Array<{ name: string; characters?: string }> } | null;
+}
+
+interface FigmaNode {
+  id: string;
+  name: string;
+  type: string;
+  children?: FigmaNode[];
+  characters?: string;
+}
+
+// Helper: Find text content by name pattern in children
+function findTextByName(node: FigmaNode, patterns: string[]): string | undefined {
+  if (node.type === 'TEXT') {
+    const nameLower = node.name.toLowerCase();
+    if (patterns.some(p => nameLower.includes(p.toLowerCase()))) {
+      return node.characters;
+    }
+  }
+  if (node.children) {
+    for (const child of node.children) {
+      const found = findTextByName(child, patterns);
+      if (found) return found;
+    }
+  }
+  return undefined;
+}
+
+// Helper: Collect all TEXT nodes from a node
+function collectTextNodes(node: FigmaNode): Array<{ name: string; characters?: string }> {
+  const texts: Array<{ name: string; characters?: string }> = [];
+
+  if (node.type === 'TEXT') {
+    texts.push({ name: node.name, characters: node.characters });
+  }
+
+  if (node.children) {
+    for (const child of node.children) {
+      texts.push(...collectTextNodes(child));
+    }
+  }
+
+  return texts;
+}
+
+// Parse screen data from node structure
+function parseScreenData(
+  node: FigmaNode,
+  path: string = '',
+  results: ParsedScreenData[] = []
+): ParsedScreenData[] {
+  const currentPath = path ? `${path}.${node.name}` : node.name;
+
+  // Check if this node has the expected structure (children with Groups and Frame)
+  if (node.children && node.children.length >= 2) {
+    const groups = node.children.filter(c => c.type === 'GROUP');
+    const frames = node.children.filter(c => c.type === 'FRAME');
+
+    // If we have both Groups and Frames, parse them
+    if (groups.length >= 1 && frames.length >= 1) {
+      const screenData: ParsedScreenData = {
+        nodeId: node.id,
+        nodePath: currentPath,
+        rawGroups: [],
+        rawFrame: null,
+      };
+
+      // Parse Groups - extract 화면 ID, 작성일
+      for (const group of groups) {
+        const textNodes = collectTextNodes(group);
+        screenData.rawGroups.push(...textNodes);
+
+        // Try to find specific fields
+        const screenIdText = findTextByName(group, ['화면 ID', 'screen id', 'screenid', 'id']);
+        const dateText = findTextByName(group, ['작성일', 'date', 'created', '날짜']);
+
+        if (screenIdText) screenData.screenId = screenIdText;
+        if (dateText) screenData.createdDate = dateText;
+      }
+
+      // Parse Frame - extract Screen Information, Description
+      for (const frame of frames) {
+        const textNodes = collectTextNodes(frame);
+
+        if (!screenData.rawFrame) {
+          screenData.rawFrame = { name: frame.name, children: textNodes };
+        }
+
+        const screenInfoText = findTextByName(frame, ['screen information', 'screeninformation', '화면 정보', '스크린 정보']);
+        const descText = findTextByName(frame, ['description', 'desc', '설명', '기획', 'spec']);
+
+        if (screenInfoText) screenData.screenInformation = screenInfoText;
+        if (descText) screenData.description = descText;
+      }
+
+      // Only add if we found some data
+      if (screenData.screenId || screenData.createdDate || screenData.screenInformation || screenData.description ||
+          screenData.rawGroups.length > 0 || screenData.rawFrame) {
+        results.push(screenData);
+      }
+    }
+  }
+
+  // Recursively process children
+  if (node.children) {
+    for (const child of node.children) {
+      parseScreenData(child, currentPath, results);
+    }
+  }
+
+  return results;
+}
+
+// Parse entire API response
+function parseApiResponse(response: Record<string, unknown>): ParsedScreenData[] {
+  const results: ParsedScreenData[] = [];
+
+  // Handle nodes API response: { nodes: { "nodeId": { document: {...} } } }
+  if (response.nodes && typeof response.nodes === 'object') {
+    const nodes = response.nodes as Record<string, { document?: FigmaNode }>;
+    for (const [nodeId, nodeData] of Object.entries(nodes)) {
+      if (nodeData.document) {
+        parseScreenData(nodeData.document, `nodes.${nodeId}.document`, results);
+      }
+    }
+  }
+
+  // Handle file API response: { document: {...} }
+  if (response.document && typeof response.document === 'object') {
+    parseScreenData(response.document as FigmaNode, 'document', results);
+  }
+
+  return results;
+}
 
 interface ParsedUrl {
   type: ApiType;
@@ -86,9 +230,16 @@ export default function FigmaTestPage() {
   const [fileKeyInput, setFileKeyInput] = useState('');
   const [apiType, setApiType] = useState<ApiType>('auto');
   const [loading, setLoading] = useState(false);
-  const [response, setResponse] = useState<object | null>(null);
+  const [response, setResponse] = useState<Record<string, unknown> | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [apiUrl, setApiUrl] = useState<string>('');
+  const [activeTab, setActiveTab] = useState<'parsed' | 'raw'>('parsed');
+
+  // Parse response data
+  const parsedData = useMemo(() => {
+    if (!response) return [];
+    return parseApiResponse(response);
+  }, [response]);
 
   const handleFetch = async () => {
     if (!token) {
@@ -279,20 +430,166 @@ export default function FigmaTestPage() {
         {/* Response Display */}
         {response && (
           <div className="bg-slate-800/50 rounded-2xl border border-slate-700 overflow-hidden">
+            {/* Tabs */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700">
-              <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Response JSON</span>
+              <div className="flex gap-4">
+                <button
+                  onClick={() => setActiveTab('parsed')}
+                  className={`text-xs font-bold uppercase tracking-wider transition-all ${
+                    activeTab === 'parsed' ? 'text-yellow-400' : 'text-slate-500 hover:text-slate-300'
+                  }`}
+                >
+                  Parsed Data ({parsedData.length})
+                </button>
+                <button
+                  onClick={() => setActiveTab('raw')}
+                  className={`text-xs font-bold uppercase tracking-wider transition-all ${
+                    activeTab === 'raw' ? 'text-yellow-400' : 'text-slate-500 hover:text-slate-300'
+                  }`}
+                >
+                  Raw JSON
+                </button>
+              </div>
               <button
-                onClick={() => copyToClipboard(JSON.stringify(response, null, 2))}
+                onClick={() => copyToClipboard(JSON.stringify(activeTab === 'parsed' ? parsedData : response, null, 2))}
                 className="text-xs font-bold text-yellow-400 hover:text-yellow-300 uppercase tracking-wider"
               >
-                Copy JSON
+                Copy
               </button>
             </div>
-            <div className="p-6 max-h-[70vh] overflow-auto">
-              <pre className="text-sm text-slate-300 font-mono whitespace-pre-wrap break-words">
-                {JSON.stringify(response, null, 2)}
-              </pre>
-            </div>
+
+            {/* Parsed Data Tab */}
+            {activeTab === 'parsed' && (
+              <div className="p-6 max-h-[70vh] overflow-auto">
+                {parsedData.length === 0 ? (
+                  <div className="text-center py-12">
+                    <p className="text-slate-500 font-medium">파싱된 화면 데이터가 없습니다.</p>
+                    <p className="text-xs text-slate-600 mt-2">Groups와 Frame 구조를 가진 노드를 찾지 못했습니다.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-6">
+                    {parsedData.map((screen, idx) => (
+                      <div key={idx} className="bg-slate-900/50 rounded-xl border border-slate-700 overflow-hidden">
+                        {/* Screen Header */}
+                        <div className="px-5 py-4 border-b border-slate-700/50 bg-slate-800/30">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                              Screen #{idx + 1}
+                            </span>
+                            <span className="text-[10px] font-mono text-slate-600">{screen.nodeId}</span>
+                          </div>
+                          <p className="text-[10px] font-mono text-slate-600 mt-1 break-all">{screen.nodePath}</p>
+                        </div>
+
+                        {/* Extracted Fields */}
+                        <div className="p-5 space-y-4">
+                          {/* Main Fields */}
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-[10px] font-bold text-yellow-400 uppercase tracking-wider mb-1">
+                                화면 ID
+                              </label>
+                              <p className="text-sm text-white font-medium">
+                                {screen.screenId || <span className="text-slate-500 italic">-</span>}
+                              </p>
+                            </div>
+                            <div>
+                              <label className="block text-[10px] font-bold text-yellow-400 uppercase tracking-wider mb-1">
+                                작성일
+                              </label>
+                              <p className="text-sm text-white font-medium">
+                                {screen.createdDate || <span className="text-slate-500 italic">-</span>}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div>
+                            <label className="block text-[10px] font-bold text-yellow-400 uppercase tracking-wider mb-1">
+                              Screen Information
+                            </label>
+                            <p className="text-sm text-white font-medium whitespace-pre-wrap">
+                              {screen.screenInformation || <span className="text-slate-500 italic">-</span>}
+                            </p>
+                          </div>
+
+                          <div>
+                            <label className="block text-[10px] font-bold text-yellow-400 uppercase tracking-wider mb-1">
+                              Description
+                            </label>
+                            <p className="text-sm text-white font-medium whitespace-pre-wrap">
+                              {screen.description || <span className="text-slate-500 italic">-</span>}
+                            </p>
+                          </div>
+
+                          {/* Raw Groups Data */}
+                          {screen.rawGroups.length > 0 && (
+                            <div>
+                              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">
+                                Groups Text Nodes ({screen.rawGroups.length})
+                              </label>
+                              <div className="bg-slate-900 rounded-lg p-3 max-h-40 overflow-auto">
+                                <table className="w-full text-xs">
+                                  <thead>
+                                    <tr className="text-slate-500 uppercase tracking-wider">
+                                      <th className="text-left pb-2 font-bold">Name</th>
+                                      <th className="text-left pb-2 font-bold">Characters</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody className="text-slate-300">
+                                    {screen.rawGroups.map((g, i) => (
+                                      <tr key={i} className="border-t border-slate-800">
+                                        <td className="py-1.5 pr-4 font-mono text-cyan-400">{g.name}</td>
+                                        <td className="py-1.5 font-medium">{g.characters || '-'}</td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Raw Frame Data */}
+                          {screen.rawFrame && (
+                            <div>
+                              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">
+                                Frame: {screen.rawFrame.name} ({screen.rawFrame.children.length} texts)
+                              </label>
+                              <div className="bg-slate-900 rounded-lg p-3 max-h-40 overflow-auto">
+                                <table className="w-full text-xs">
+                                  <thead>
+                                    <tr className="text-slate-500 uppercase tracking-wider">
+                                      <th className="text-left pb-2 font-bold">Name</th>
+                                      <th className="text-left pb-2 font-bold">Characters</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody className="text-slate-300">
+                                    {screen.rawFrame.children.map((t, i) => (
+                                      <tr key={i} className="border-t border-slate-800">
+                                        <td className="py-1.5 pr-4 font-mono text-green-400">{t.name}</td>
+                                        <td className="py-1.5 font-medium whitespace-pre-wrap">{t.characters || '-'}</td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Raw JSON Tab */}
+            {activeTab === 'raw' && (
+              <div className="p-6 max-h-[70vh] overflow-auto">
+                <pre className="text-sm text-slate-300 font-mono whitespace-pre-wrap break-words">
+                  {JSON.stringify(response, null, 2)}
+                </pre>
+              </div>
+            )}
           </div>
         )}
 
