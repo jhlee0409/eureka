@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { PrefixGroup, ScreenData, WbsTask, TestCase, WbsStatus, QAStatus, QAPriority, QAPosition, Comment } from '../types';
 import { CoverThumbnail } from './CoverThumbnail';
 
@@ -21,6 +21,16 @@ const DetailModal: React.FC<DetailModalProps> = ({ group, onClose }) => {
   const [editingQAId, setEditingQAId] = useState<string | null>(null);
   const [newComment, setNewComment] = useState('');
   const [selectedCommentUser, setSelectedCommentUser] = useState(TEAM_MEMBERS[0]);
+
+  // Gantt chart drag state
+  const [dragState, setDragState] = useState<{
+    taskId: string;
+    mode: 'move' | 'resize-start' | 'resize-end';
+    startX: number;
+    originalStart: string;
+    originalEnd: string;
+  } | null>(null);
+  const ganttContainerRef = useRef<HTMLDivElement>(null);
 
   // Flatten all screens from all baseIds
   const allScreens = useMemo(() => {
@@ -188,6 +198,82 @@ const DetailModal: React.FC<DetailModalProps> = ({ group, onClose }) => {
       setNewComment('');
     }
   };
+
+  // Gantt chart drag handlers
+  const handleGanttMouseDown = useCallback((
+    e: React.MouseEvent,
+    taskId: string,
+    mode: 'move' | 'resize-start' | 'resize-end'
+  ) => {
+    if (isMasterView) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const task = wbsTasks.find(t => t.id === taskId);
+    if (!task) return;
+
+    setDragState({
+      taskId,
+      mode,
+      startX: e.clientX,
+      originalStart: task.startDate,
+      originalEnd: task.endDate
+    });
+  }, [isMasterView, wbsTasks]);
+
+  const handleGanttMouseMove = useCallback((e: MouseEvent) => {
+    if (!dragState || !timelineRange) return;
+
+    const deltaX = e.clientX - dragState.startX;
+    const daysDelta = Math.round(deltaX / 32); // 32px per day
+
+    const task = wbsTasks.find(t => t.id === dragState.taskId);
+    if (!task) return;
+
+    const originalStart = new Date(dragState.originalStart);
+    const originalEnd = new Date(dragState.originalEnd);
+
+    let newStart = new Date(originalStart);
+    let newEnd = new Date(originalEnd);
+
+    if (dragState.mode === 'move') {
+      newStart.setDate(originalStart.getDate() + daysDelta);
+      newEnd.setDate(originalEnd.getDate() + daysDelta);
+    } else if (dragState.mode === 'resize-start') {
+      newStart.setDate(originalStart.getDate() + daysDelta);
+      if (newStart >= newEnd) {
+        newStart = new Date(newEnd);
+        newStart.setDate(newStart.getDate() - 1);
+      }
+    } else if (dragState.mode === 'resize-end') {
+      newEnd.setDate(originalEnd.getDate() + daysDelta);
+      if (newEnd <= newStart) {
+        newEnd = new Date(newStart);
+        newEnd.setDate(newEnd.getDate() + 1);
+      }
+    }
+
+    const formatDate = (d: Date) => d.toISOString().split('T')[0];
+    updateWbsTask(dragState.taskId, {
+      startDate: formatDate(newStart),
+      endDate: formatDate(newEnd)
+    });
+  }, [dragState, timelineRange, wbsTasks, updateWbsTask]);
+
+  const handleGanttMouseUp = useCallback(() => {
+    setDragState(null);
+  }, []);
+
+  // Add/remove global mouse event listeners for dragging
+  useEffect(() => {
+    if (dragState) {
+      window.addEventListener('mousemove', handleGanttMouseMove);
+      window.addEventListener('mouseup', handleGanttMouseUp);
+      return () => {
+        window.removeEventListener('mousemove', handleGanttMouseMove);
+        window.removeEventListener('mouseup', handleGanttMouseUp);
+      };
+    }
+  }, [dragState, handleGanttMouseMove, handleGanttMouseUp]);
 
   const editingQA = useMemo(() => testCases.find(t => t.id === editingQAId), [testCases, editingQAId]);
 
@@ -406,19 +492,46 @@ const DetailModal: React.FC<DetailModalProps> = ({ group, onClose }) => {
                                       : task.status === 'In Progress'
                                         ? 'bg-blue-500'
                                         : 'bg-slate-400';
+                                    const isDragging = dragState?.taskId === task.id;
+                                    const isEditable = !isMasterView;
 
                                     return (
                                       <div
-                                        className={`absolute top-3 h-6 ${barColor} rounded-lg shadow-md flex items-center justify-center transition-all hover:scale-105 hover:shadow-lg cursor-default`}
+                                        className={`absolute top-3 h-6 ${barColor} rounded-lg shadow-md flex items-center justify-center transition-shadow group/bar ${
+                                          isDragging ? 'shadow-xl scale-105 z-10' : 'hover:shadow-lg'
+                                        } ${isEditable ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'}`}
                                         style={{
                                           left: `${startOffset * 32}px`,
-                                          width: `${duration * 32 - 4}px`,
+                                          width: `${Math.max(duration * 32 - 4, 28)}px`,
                                         }}
-                                        title={`${task.name}: ${task.startDate} ~ ${task.endDate}`}
+                                        title={`${task.name}: ${task.startDate} ~ ${task.endDate}${isEditable ? '\n드래그: 이동 | 양쪽 끝: 기간 조절' : ''}`}
+                                        onMouseDown={(e) => handleGanttMouseDown(e, task.id, 'move')}
                                       >
-                                        <span className="text-[9px] font-black text-white truncate px-2">
+                                        {/* Resize handle - Start */}
+                                        {isEditable && (
+                                          <div
+                                            className="absolute left-0 top-0 w-2 h-full cursor-ew-resize hover:bg-white/30 rounded-l-lg transition-colors"
+                                            onMouseDown={(e) => {
+                                              e.stopPropagation();
+                                              handleGanttMouseDown(e, task.id, 'resize-start');
+                                            }}
+                                          />
+                                        )}
+
+                                        <span className="text-[9px] font-black text-white truncate px-3 select-none">
                                           {duration > 2 ? task.name : ''}
                                         </span>
+
+                                        {/* Resize handle - End */}
+                                        {isEditable && (
+                                          <div
+                                            className="absolute right-0 top-0 w-2 h-full cursor-ew-resize hover:bg-white/30 rounded-r-lg transition-colors"
+                                            onMouseDown={(e) => {
+                                              e.stopPropagation();
+                                              handleGanttMouseDown(e, task.id, 'resize-end');
+                                            }}
+                                          />
+                                        )}
                                       </div>
                                     );
                                   })()}
