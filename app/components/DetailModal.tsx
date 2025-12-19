@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { PrefixGroup, ScreenData, WbsTask, TestCase, WbsStatus, QAStatus, QAPriority, QAPosition, Comment } from '../types';
+import { PrefixGroup, ScreenData, WbsTask, TestCase, WbsStatus, QAStatus, QAProgress, QAPriority, QAPosition, Comment } from '../types';
 import { CoverThumbnail } from './CoverThumbnail';
 
 interface DetailModalProps {
@@ -117,7 +117,7 @@ const DetailModal: React.FC<DetailModalProps> = ({ group, onClose }) => {
 
   const qaProgress = useMemo(() => {
     if (testCases.length === 0) return 0;
-    const done = testCases.filter(t => t.status === 'Done').length;
+    const done = testCases.filter(t => t.status === 'ProdDone' || t.status === 'DevDone').length;
     return Math.round((done / testCases.length) * 100);
   }, [testCases]);
 
@@ -169,12 +169,12 @@ const DetailModal: React.FC<DetailModalProps> = ({ group, onClose }) => {
       issueContent: '',
       referenceLink: '',
       date: new Date().toISOString().split('T')[0],
-      status: 'Pending',
+      status: 'Reviewing',
       reporter: TEAM_MEMBERS[0],
       priority: 'Medium',
       position: 'Front-end',
       assignee: TEAM_MEMBERS[1],
-      progress: 0,
+      progress: 'Waiting',
       comments: [],
       originScreenId: activeScreensForData[0]?.figmaId || ''
     };
@@ -736,23 +736,34 @@ const DetailModal: React.FC<DetailModalProps> = ({ group, onClose }) => {
                           </div>
                         </div>
                       </div>
-                      <div className="flex items-center gap-8">
-                        <span className={`px-5 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest ${
-                          tc.status === 'Done' ? 'bg-green-100 text-green-800' :
-                          tc.status === 'DevDeployed' || tc.status === 'QADeployed' ? 'bg-blue-100 text-blue-800' :
-                          tc.status === 'DevError' || tc.status === 'QAError' ? 'bg-red-100 text-red-800' :
-                          tc.status === 'Reviewing' ? 'bg-yellow-100 text-yellow-800' :
+                      <div className="flex items-center gap-4">
+                        {/* 상태 배지 */}
+                        <span className={`px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-wide ${
+                          tc.status === 'DevDone' || tc.status === 'ProdDone' ? 'bg-green-100 text-green-800' :
+                          tc.status === 'DevError' || tc.status === 'ProdError' ? 'bg-red-100 text-red-800' :
                           tc.status === 'Hold' ? 'bg-orange-100 text-orange-800' :
-                          'bg-slate-100 text-slate-800'
+                          'bg-yellow-100 text-yellow-800'
                         }`}>
-                          {tc.status === 'Pending' ? '대기중' :
-                           tc.status === 'Reviewing' ? '확인중' :
-                           tc.status === 'DevDeployed' ? 'Dev 배포' :
+                          {tc.status === 'Reviewing' ? '검토중' :
                            tc.status === 'DevError' ? 'Dev 오류' :
-                           tc.status === 'QADeployed' ? 'QA 배포' :
-                           tc.status === 'QAError' ? 'QA 오류' :
-                           tc.status === 'Done' ? '완료' :
+                           tc.status === 'ProdError' ? 'Prod 오류' :
+                           tc.status === 'DevDone' ? 'Dev 완료' :
+                           tc.status === 'ProdDone' ? 'Prod 완료' :
                            tc.status === 'Hold' ? '보류' : tc.status}
+                        </span>
+                        {/* 진행도 배지 */}
+                        <span className={`px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-wide ${
+                          tc.progress === 'ProdDeployed' ? 'bg-emerald-100 text-emerald-800' :
+                          tc.progress === 'DevDeployed' ? 'bg-blue-100 text-blue-800' :
+                          tc.progress === 'Working' ? 'bg-purple-100 text-purple-800' :
+                          tc.progress === 'Checking' ? 'bg-cyan-100 text-cyan-800' :
+                          'bg-slate-100 text-slate-600'
+                        }`}>
+                          {tc.progress === 'Waiting' ? '대기' :
+                           tc.progress === 'Checking' ? '확인' :
+                           tc.progress === 'Working' ? '작업 중' :
+                           tc.progress === 'DevDeployed' ? 'Dev 배포' :
+                           tc.progress === 'ProdDeployed' ? 'Prod 배포' : tc.progress}
                         </span>
                         {!isMasterView && (
                           <svg className="w-6 h-6 text-slate-300 group-hover:text-slate-900 transition-all group-hover:translate-x-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" d="M9 5l7 7-7 7"></path></svg>
@@ -790,18 +801,26 @@ const DetailModal: React.FC<DetailModalProps> = ({ group, onClose }) => {
                     <input value={editingQA.scenario} onChange={e => updateTestCase(editingQA.id, {scenario: e.target.value})} className="w-full text-2xl font-black text-slate-900 outline-none focus:text-slate-900 transition-colors bg-transparent border-none p-0" />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-8 bg-slate-100 p-8 rounded-[2.5rem] border border-slate-200">
+                  <div className="grid grid-cols-2 gap-6 bg-slate-100 p-8 rounded-[2.5rem] border border-slate-200">
                     <div className="space-y-2">
-                       <label className="text-[9px] font-black text-slate-500 uppercase block">상태</label>
+                       <label className="text-[9px] font-black text-slate-500 uppercase block">상태 (TC)</label>
                        <select value={editingQA.status} onChange={e => updateTestCase(editingQA.id, {status: e.target.value as QAStatus})} className="w-full bg-white px-4 py-3 rounded-2xl text-[11px] font-black border border-slate-300 outline-none shadow-sm">
-                          <option value="Pending">대기중</option>
-                          <option value="Reviewing">확인중</option>
-                          <option value="DevDeployed">Dev 배포</option>
+                          <option value="Reviewing">검토중</option>
                           <option value="DevError">Dev 오류</option>
-                          <option value="QADeployed">QA 배포</option>
-                          <option value="QAError">QA 오류</option>
-                          <option value="Done">완료</option>
+                          <option value="ProdError">Prod 오류</option>
+                          <option value="DevDone">Dev 완료</option>
+                          <option value="ProdDone">Prod 완료</option>
                           <option value="Hold">보류</option>
+                       </select>
+                    </div>
+                    <div className="space-y-2">
+                       <label className="text-[9px] font-black text-slate-500 uppercase block">진행도 (담당자)</label>
+                       <select value={editingQA.progress} onChange={e => updateTestCase(editingQA.id, {progress: e.target.value as QAProgress})} className="w-full bg-white px-4 py-3 rounded-2xl text-[11px] font-black border border-slate-300 outline-none shadow-sm">
+                          <option value="Waiting">대기</option>
+                          <option value="Checking">확인</option>
+                          <option value="Working">작업 중</option>
+                          <option value="DevDeployed">Dev 배포</option>
+                          <option value="ProdDeployed">Prod 배포</option>
                        </select>
                     </div>
                     <div className="space-y-2">
@@ -830,7 +849,7 @@ const DetailModal: React.FC<DetailModalProps> = ({ group, onClose }) => {
                           {TEAM_MEMBERS.map(m => <option key={m}>{m}</option>)}
                        </select>
                     </div>
-                    <div className="space-y-2">
+                    <div className="col-span-2 space-y-2">
                        <label className="text-[9px] font-black text-slate-500 uppercase block">등록일</label>
                        <div className="w-full bg-slate-200 px-4 py-3 rounded-2xl text-[11px] font-black text-slate-600 border border-slate-300">
                          {editingQA.date}

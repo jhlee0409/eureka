@@ -93,15 +93,23 @@ export interface WbsTask {
   originScreenId?: string; // Track which screen this belongs to
 }
 
+// TC 자체의 상태
 export type QAStatus =
-  | 'Pending'      // 대기중
-  | 'Reviewing'    // 확인중
-  | 'DevDeployed'  // Dev 배포
+  | 'Reviewing'    // 검토중
   | 'DevError'     // Dev 오류
-  | 'QADeployed'   // QA 배포
-  | 'QAError'      // QA 오류
-  | 'Done'         // 완료
+  | 'ProdError'    // Prod 오류
+  | 'DevDone'      // Dev 완료
+  | 'ProdDone'     // Prod 완료
   | 'Hold';        // 보류
+
+// 담당자 진행도
+export type QAProgress =
+  | 'Waiting'      // 대기
+  | 'Checking'     // 확인
+  | 'Working'      // 작업 중
+  | 'DevDeployed'  // Dev 배포
+  | 'ProdDeployed'; // Prod 배포
+
 export type QAPriority = 'High' | 'Medium' | 'Low';
 export type QAPosition = 'Front-end' | 'Back-end' | 'Design' | 'PM';
 
@@ -124,7 +132,7 @@ export interface TestCase {
   priority: QAPriority;
   position: QAPosition;
   assignee: string;
-  progress: number; // 0-100
+  progress: QAProgress; // 담당자 진행도
   comments: Comment[];
   originScreenId?: string; // Track which screen this belongs to
 }
