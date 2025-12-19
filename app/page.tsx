@@ -92,7 +92,25 @@ export default function Home() {
           </div>
         )}
 
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-4">
+          {/* Dashboard Navigation */}
+          <div className="flex items-center gap-2 bg-slate-800 p-1 rounded-xl border border-slate-700">
+            <button
+              onClick={() => router.push('/dashboard/developer')}
+              className="px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-white hover:bg-slate-700 transition-all"
+              title="담당자 대시보드"
+            >
+              담당자
+            </button>
+            <button
+              onClick={() => router.push('/dashboard/qa')}
+              className="px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-white hover:bg-slate-700 transition-all"
+              title="QA 대시보드"
+            >
+              QA
+            </button>
+          </div>
+
           {totalGroups > 0 && (
             <button
               onClick={() => setState({ pages: {}, loading: false, error: null })}
