@@ -3,10 +3,14 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { PrefixGroup, ScreenData } from '../../types';
-import { useScreenData } from './hooks/useScreenData';
+import { useScreenData, TEAM_MEMBERS } from './hooks/useScreenData';
 import { ScreenSidebar } from './components/ScreenSidebar';
 import { WbsTab } from './components/WbsTab';
 import { QaTab } from './components/QaTab';
+import { DeveloperView } from './components/DeveloperView';
+import { QaView } from './components/QaView';
+
+type ViewMode = 'standard' | 'developer' | 'qa';
 
 export default function ScreenDetailPage() {
   const params = useParams();
@@ -16,10 +20,13 @@ export default function ScreenDetailPage() {
   const prefix = params.prefix as string;
   const screenIdParam = searchParams.get('screen');
   const tabParam = searchParams.get('tab') as 'wbs' | 'qa' | null;
+  const viewParam = searchParams.get('view') as ViewMode | null;
 
   const [group, setGroup] = useState<PrefixGroup | null>(null);
   const [activeScreenId, setActiveScreenId] = useState<string | null>(screenIdParam);
   const [activeTab, setActiveTab] = useState<'wbs' | 'qa'>(tabParam || 'wbs');
+  const [viewMode, setViewMode] = useState<ViewMode>(viewParam || 'standard');
+  const [currentUser, setCurrentUser] = useState(TEAM_MEMBERS[0]);
 
   // Load group data from localStorage (stored by main page)
   useEffect(() => {
@@ -29,16 +36,17 @@ export default function ScreenDetailPage() {
     }
   }, [prefix]);
 
-  // Update URL when screen or tab changes
+  // Update URL when screen, tab, or view changes
   useEffect(() => {
     const params = new URLSearchParams();
     if (activeScreenId) params.set('screen', activeScreenId);
     if (activeTab !== 'wbs') params.set('tab', activeTab);
+    if (viewMode !== 'standard') params.set('view', viewMode);
 
     const queryString = params.toString();
     const newUrl = queryString ? `?${queryString}` : '';
     window.history.replaceState(null, '', `/screen/${prefix}${newUrl}`);
-  }, [activeScreenId, activeTab, prefix]);
+  }, [activeScreenId, activeTab, viewMode, prefix]);
 
   const allScreens = useMemo(() => {
     if (!group) return [];
@@ -133,62 +141,121 @@ export default function ScreenDetailPage() {
           ))}
         </div>
 
-        <button onClick={handleClose} className="text-xs font-black text-slate-500 hover:text-red-600 uppercase tracking-widest px-4 transition-colors">
-          닫기
-        </button>
+        <div className="flex items-center gap-3">
+          {/* View Mode Toggle */}
+          <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200">
+            <button
+              onClick={() => setViewMode('standard')}
+              className={`px-3 py-1.5 rounded-lg text-[10px] font-black transition-all ${
+                viewMode === 'standard' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              화면 뷰
+            </button>
+            <button
+              onClick={() => setViewMode('developer')}
+              className={`px-3 py-1.5 rounded-lg text-[10px] font-black transition-all ${
+                viewMode === 'developer' ? 'bg-blue-500 text-white shadow-sm' : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              담당자 뷰
+            </button>
+            <button
+              onClick={() => setViewMode('qa')}
+              className={`px-3 py-1.5 rounded-lg text-[10px] font-black transition-all ${
+                viewMode === 'qa' ? 'bg-purple-500 text-white shadow-sm' : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              QA 뷰
+            </button>
+          </div>
+
+          <button onClick={handleClose} className="text-xs font-black text-slate-500 hover:text-red-600 uppercase tracking-widest px-4 transition-colors">
+            닫기
+          </button>
+        </div>
       </header>
 
       {/* Main Content */}
       <div className="flex-1 flex overflow-hidden bg-slate-100">
-        <ScreenSidebar
-          activeScreen={activeScreen}
-          allScreens={allScreens}
-          isMasterView={isMasterView}
-        />
+        {viewMode === 'standard' && (
+          <ScreenSidebar
+            activeScreen={activeScreen}
+            allScreens={allScreens}
+            isMasterView={isMasterView}
+          />
+        )}
 
-        <div className="w-[65%] flex flex-col bg-white overflow-hidden relative shadow-2xl">
-          <nav className="h-14 border-b border-slate-200 flex items-center px-10 gap-10 shrink-0 bg-white">
-            <button
-              onClick={() => setActiveTab('wbs')}
-              className={`h-full text-[11px] font-black uppercase tracking-[0.15em] border-b-4 transition-all ${
-                activeTab === 'wbs' ? 'border-slate-900 text-slate-900' : 'border-transparent text-slate-500 hover:text-slate-900'
-              }`}
-            >
-              기획/개발 (WBS)
-            </button>
-            <button
-              onClick={() => setActiveTab('qa')}
-              className={`h-full text-[11px] font-black uppercase tracking-[0.15em] border-b-4 transition-all ${
-                activeTab === 'qa' ? 'border-slate-900 text-slate-900' : 'border-transparent text-slate-500 hover:text-slate-900'
-              }`}
-            >
-              품질관리 (TC) ({testCases.length})
-            </button>
-          </nav>
+        <div className={`${viewMode === 'standard' ? 'w-[65%]' : 'w-full'} flex flex-col bg-white overflow-hidden relative shadow-2xl`}>
+          {viewMode === 'standard' ? (
+            <>
+              <nav className="h-14 border-b border-slate-200 flex items-center px-10 gap-10 shrink-0 bg-white">
+                <button
+                  onClick={() => setActiveTab('wbs')}
+                  className={`h-full text-[11px] font-black uppercase tracking-[0.15em] border-b-4 transition-all ${
+                    activeTab === 'wbs' ? 'border-slate-900 text-slate-900' : 'border-transparent text-slate-500 hover:text-slate-900'
+                  }`}
+                >
+                  기획/개발 (WBS)
+                </button>
+                <button
+                  onClick={() => setActiveTab('qa')}
+                  className={`h-full text-[11px] font-black uppercase tracking-[0.15em] border-b-4 transition-all ${
+                    activeTab === 'qa' ? 'border-slate-900 text-slate-900' : 'border-transparent text-slate-500 hover:text-slate-900'
+                  }`}
+                >
+                  품질관리 (TC) ({testCases.length})
+                </button>
+              </nav>
 
-          <div className="flex-1 overflow-y-auto custom-scrollbar p-10 bg-white">
-            {activeTab === 'wbs' ? (
-              <WbsTab
+              <div className="flex-1 overflow-y-auto custom-scrollbar p-10 bg-white">
+                {activeTab === 'wbs' ? (
+                  <WbsTab
+                    wbsTasks={wbsTasks}
+                    isMasterView={isMasterView}
+                    activeScreen={activeScreen}
+                    getScreenNameById={getScreenNameById}
+                    updateWbsTask={updateWbsTask}
+                    deleteWbsTask={deleteWbsTask}
+                    addWbsTask={addWbsTask}
+                  />
+                ) : (
+                  <QaTab
+                    testCases={testCases}
+                    isMasterView={isMasterView}
+                    qaProgress={qaProgress}
+                    getScreenNameById={getScreenNameById}
+                    updateTestCase={updateTestCase}
+                    deleteTestCase={deleteTestCase}
+                    addTestCase={addTestCase}
+                  />
+                )}
+              </div>
+            </>
+          ) : viewMode === 'developer' ? (
+            <div className="flex-1 overflow-y-auto custom-scrollbar p-10 bg-slate-50">
+              <DeveloperView
                 wbsTasks={wbsTasks}
-                isMasterView={isMasterView}
-                activeScreen={activeScreen}
-                getScreenNameById={getScreenNameById}
-                updateWbsTask={updateWbsTask}
-                deleteWbsTask={deleteWbsTask}
-                addWbsTask={addWbsTask}
-              />
-            ) : (
-              <QaTab
                 testCases={testCases}
+                currentUser={currentUser}
+                onUserChange={setCurrentUser}
+                updateWbsTask={updateWbsTask}
+                updateTestCase={updateTestCase}
                 isMasterView={isMasterView}
-                qaProgress={qaProgress}
-                getScreenNameById={getScreenNameById}
+              />
+            </div>
+          ) : (
+            <div className="flex-1 overflow-y-auto custom-scrollbar p-10 bg-slate-50">
+              <QaView
+                testCases={testCases}
+                addTestCase={addTestCase}
                 updateTestCase={updateTestCase}
                 deleteTestCase={deleteTestCase}
-                addTestCase={addTestCase}
+                isMasterView={isMasterView}
+                getScreenNameById={getScreenNameById}
               />
-            )}
-          </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
