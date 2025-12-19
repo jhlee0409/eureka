@@ -153,8 +153,19 @@ const DetailModal: React.FC<DetailModalProps> = ({ group, onClose }) => {
 
   const addTestCase = () => {
     const newTC: TestCase = {
-      id: crypto.randomUUID(), scenario: '이슈 발생 확인 필요', issueContent: '', date: new Date().toISOString().split('T')[0],
-      status: 'Open', reporter: TEAM_MEMBERS[0], priority: 'Medium', position: 'Front-end', assignee: TEAM_MEMBERS[1], progress: 0, comments: [],
+      id: crypto.randomUUID(),
+      checkpoint: '',
+      scenario: '이슈 발생 확인 필요',
+      issueContent: '',
+      referenceLink: '',
+      date: new Date().toISOString().split('T')[0],
+      status: 'Open',
+      reporter: TEAM_MEMBERS[0],
+      priority: 'Medium',
+      position: 'Front-end',
+      assignee: TEAM_MEMBERS[1],
+      progress: 0,
+      comments: [],
       originScreenId: activeScreensForData[0]?.figmaId || ''
     };
     const next = [...testCases, newTC];
@@ -582,7 +593,17 @@ const DetailModal: React.FC<DetailModalProps> = ({ group, onClose }) => {
                           : `cursor-pointer ${editingQAId === tc.id ? 'border-slate-900 shadow-2xl' : 'border-slate-200 hover:border-slate-300'}`
                       }`}
                     >
-                      <div className="flex items-center gap-8">
+                      <div className="flex items-center gap-6">
+                        {/* Checkpoint */}
+                        <div className="w-24 shrink-0 text-center">
+                          {tc.checkpoint ? (
+                            <span className="inline-block bg-purple-100 text-purple-800 px-3 py-1.5 rounded-xl text-[10px] font-black">
+                              {tc.checkpoint}
+                            </span>
+                          ) : (
+                            <span className="text-[10px] text-slate-300 font-bold">-</span>
+                          )}
+                        </div>
                         <div className={`w-4 h-4 rounded-full shadow-md shrink-0 ${tc.priority === 'High' ? 'bg-red-600' : tc.priority === 'Medium' ? 'bg-orange-600' : 'bg-green-600'}`}></div>
                         <div>
                           {isMasterView && (
@@ -594,6 +615,7 @@ const DetailModal: React.FC<DetailModalProps> = ({ group, onClose }) => {
                           <div className="flex items-center gap-5 text-[11px] font-black text-slate-600 uppercase tracking-tight">
                             <span className="bg-slate-100 px-3 py-1 rounded-xl">{tc.position}</span>
                             <span>{tc.assignee}</span>
+                            <span className="text-slate-400">{tc.date}</span>
                             <span className="flex items-center gap-2">
                               <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"></path></svg>
                               {tc.comments.length}
@@ -625,6 +647,17 @@ const DetailModal: React.FC<DetailModalProps> = ({ group, onClose }) => {
                </div>
 
                <div className="flex-1 overflow-y-auto custom-scrollbar p-10 space-y-12">
+                  {/* 체크포인트 */}
+                  <div className="space-y-3 bg-purple-50 p-6 rounded-[2rem] border border-purple-200">
+                    <label className="text-[10px] font-black text-purple-700 uppercase tracking-widest block">체크포인트 (탭 내 위치)</label>
+                    <input
+                      value={editingQA.checkpoint || ''}
+                      onChange={e => updateTestCase(editingQA.id, {checkpoint: e.target.value})}
+                      placeholder="예: 로그인 버튼, 결제 폼, 헤더 메뉴..."
+                      className="w-full text-lg font-black text-slate-900 outline-none bg-white px-4 py-3 rounded-xl border border-purple-200 focus:border-purple-500"
+                    />
+                  </div>
+
                   <div className="space-y-3">
                     <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block">이슈 요약</label>
                     <input value={editingQA.scenario} onChange={e => updateTestCase(editingQA.id, {scenario: e.target.value})} className="w-full text-2xl font-black text-slate-900 outline-none focus:text-slate-900 transition-colors bg-transparent border-none p-0" />
@@ -660,6 +693,18 @@ const DetailModal: React.FC<DetailModalProps> = ({ group, onClose }) => {
                           {TEAM_MEMBERS.map(m => <option key={m}>{m}</option>)}
                        </select>
                     </div>
+                    <div className="space-y-2">
+                       <label className="text-[9px] font-black text-slate-500 uppercase block">보고자</label>
+                       <select value={editingQA.reporter} onChange={e => updateTestCase(editingQA.id, {reporter: e.target.value})} className="w-full bg-white px-4 py-3 rounded-2xl text-[11px] font-black border border-slate-300 outline-none uppercase shadow-sm">
+                          {TEAM_MEMBERS.map(m => <option key={m}>{m}</option>)}
+                       </select>
+                    </div>
+                    <div className="space-y-2">
+                       <label className="text-[9px] font-black text-slate-500 uppercase block">등록일</label>
+                       <div className="w-full bg-slate-200 px-4 py-3 rounded-2xl text-[11px] font-black text-slate-600 border border-slate-300">
+                         {editingQA.date}
+                       </div>
+                    </div>
                   </div>
 
                   <div className="space-y-4">
@@ -669,6 +714,31 @@ const DetailModal: React.FC<DetailModalProps> = ({ group, onClose }) => {
                       className="w-full bg-slate-50 p-6 rounded-[2rem] text-sm font-bold leading-relaxed text-slate-900 outline-none focus:bg-white border-2 border-transparent focus:border-slate-900 min-h-[150px] shadow-inner"
                       placeholder="결함 원인 또는 기획 요구사항을 상세히 작성하세요..."
                     />
+                  </div>
+
+                  {/* 참조 링크 */}
+                  <div className="space-y-4">
+                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block flex items-center gap-2">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
+                      참조 링크
+                    </label>
+                    <input
+                      value={editingQA.referenceLink || ''}
+                      onChange={e => updateTestCase(editingQA.id, {referenceLink: e.target.value})}
+                      placeholder="https://..."
+                      className="w-full bg-slate-50 px-6 py-4 rounded-2xl text-sm font-bold text-slate-900 outline-none focus:bg-white border-2 border-transparent focus:border-slate-900"
+                    />
+                    {editingQA.referenceLink && (
+                      <a
+                        href={editingQA.referenceLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 text-[11px] font-black text-blue-600 hover:text-blue-800 uppercase tracking-widest"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+                        링크 열기
+                      </a>
+                    )}
                   </div>
 
                   <div className="pt-10 border-t border-slate-200 space-y-8">

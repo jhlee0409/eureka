@@ -106,9 +106,10 @@ export interface Comment {
 
 export interface TestCase {
   id: string;
+  checkpoint?: string; // 체크포인트 (탭 내 위치)
   scenario: string; // Summary
   issueContent: string; // Detailed content
-  referenceImage?: string;
+  referenceLink?: string; // 참조 링크
   date: string;
   status: QAStatus;
   reporter: string;
