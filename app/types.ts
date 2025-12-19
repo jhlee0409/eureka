@@ -93,7 +93,15 @@ export interface WbsTask {
   originScreenId?: string; // Track which screen this belongs to
 }
 
-export type QAStatus = 'Open' | 'In Progress' | 'Resolved' | 'Closed';
+export type QAStatus =
+  | 'Pending'      // 대기중
+  | 'Reviewing'    // 확인중
+  | 'DevDeployed'  // Dev 배포
+  | 'DevError'     // Dev 오류
+  | 'QADeployed'   // QA 배포
+  | 'QAError'      // QA 오류
+  | 'Done'         // 완료
+  | 'Hold';        // 보류
 export type QAPriority = 'High' | 'Medium' | 'Low';
 export type QAPosition = 'Front-end' | 'Back-end' | 'Design' | 'PM';
 

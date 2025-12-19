@@ -117,8 +117,8 @@ const DetailModal: React.FC<DetailModalProps> = ({ group, onClose }) => {
 
   const qaProgress = useMemo(() => {
     if (testCases.length === 0) return 0;
-    const resolved = testCases.filter(t => t.status === 'Resolved' || t.status === 'Closed').length;
-    return Math.round((resolved / testCases.length) * 100);
+    const done = testCases.filter(t => t.status === 'Done').length;
+    return Math.round((done / testCases.length) * 100);
   }, [testCases]);
 
   const timelineRange = useMemo(() => {
@@ -169,7 +169,7 @@ const DetailModal: React.FC<DetailModalProps> = ({ group, onClose }) => {
       issueContent: '',
       referenceLink: '',
       date: new Date().toISOString().split('T')[0],
-      status: 'Open',
+      status: 'Pending',
       reporter: TEAM_MEMBERS[0],
       priority: 'Medium',
       position: 'Front-end',
@@ -737,8 +737,22 @@ const DetailModal: React.FC<DetailModalProps> = ({ group, onClose }) => {
                         </div>
                       </div>
                       <div className="flex items-center gap-8">
-                        <span className={`px-5 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest ${tc.status === 'Resolved' || tc.status === 'Closed' ? 'bg-green-100 text-green-800' : tc.status === 'In Progress' ? 'bg-blue-100 text-blue-800' : 'bg-slate-100 text-slate-800'}`}>
-                          {tc.status === 'Open' ? '오픈' : tc.status === 'In Progress' ? '진행중' : tc.status === 'Resolved' ? '해결됨' : '종료'}
+                        <span className={`px-5 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest ${
+                          tc.status === 'Done' ? 'bg-green-100 text-green-800' :
+                          tc.status === 'DevDeployed' || tc.status === 'QADeployed' ? 'bg-blue-100 text-blue-800' :
+                          tc.status === 'DevError' || tc.status === 'QAError' ? 'bg-red-100 text-red-800' :
+                          tc.status === 'Reviewing' ? 'bg-yellow-100 text-yellow-800' :
+                          tc.status === 'Hold' ? 'bg-orange-100 text-orange-800' :
+                          'bg-slate-100 text-slate-800'
+                        }`}>
+                          {tc.status === 'Pending' ? '대기중' :
+                           tc.status === 'Reviewing' ? '확인중' :
+                           tc.status === 'DevDeployed' ? 'Dev 배포' :
+                           tc.status === 'DevError' ? 'Dev 오류' :
+                           tc.status === 'QADeployed' ? 'QA 배포' :
+                           tc.status === 'QAError' ? 'QA 오류' :
+                           tc.status === 'Done' ? '완료' :
+                           tc.status === 'Hold' ? '보류' : tc.status}
                         </span>
                         {!isMasterView && (
                           <svg className="w-6 h-6 text-slate-300 group-hover:text-slate-900 transition-all group-hover:translate-x-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" d="M9 5l7 7-7 7"></path></svg>
@@ -779,11 +793,15 @@ const DetailModal: React.FC<DetailModalProps> = ({ group, onClose }) => {
                   <div className="grid grid-cols-2 gap-8 bg-slate-100 p-8 rounded-[2.5rem] border border-slate-200">
                     <div className="space-y-2">
                        <label className="text-[9px] font-black text-slate-500 uppercase block">상태</label>
-                       <select value={editingQA.status} onChange={e => updateTestCase(editingQA.id, {status: e.target.value as QAStatus})} className="w-full bg-white px-4 py-3 rounded-2xl text-[11px] font-black border border-slate-300 outline-none uppercase shadow-sm">
-                          <option value="Open">오픈</option>
-                          <option value="In Progress">진행중</option>
-                          <option value="Resolved">해결됨</option>
-                          <option value="Closed">종료</option>
+                       <select value={editingQA.status} onChange={e => updateTestCase(editingQA.id, {status: e.target.value as QAStatus})} className="w-full bg-white px-4 py-3 rounded-2xl text-[11px] font-black border border-slate-300 outline-none shadow-sm">
+                          <option value="Pending">대기중</option>
+                          <option value="Reviewing">확인중</option>
+                          <option value="DevDeployed">Dev 배포</option>
+                          <option value="DevError">Dev 오류</option>
+                          <option value="QADeployed">QA 배포</option>
+                          <option value="QAError">QA 오류</option>
+                          <option value="Done">완료</option>
+                          <option value="Hold">보류</option>
                        </select>
                     </div>
                     <div className="space-y-2">
