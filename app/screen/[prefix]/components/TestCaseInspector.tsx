@@ -165,7 +165,7 @@ export function TestCaseInspector({
   }, [testCase.activityLog]);
 
   return (
-    <div className="absolute inset-y-0 right-0 w-full md:w-[500px] bg-white border-l border-slate-300 shadow-[-30px_0_60px_rgba(0,0,0,0.15)] z-50 animate-in slide-in-from-right duration-300 flex flex-col">
+    <div className="fixed inset-y-0 right-0 w-full md:w-[500px] bg-white border-l border-slate-300 shadow-[-30px_0_60px_rgba(0,0,0,0.15)] z-50 animate-in slide-in-from-right duration-300 flex flex-col">
       <div className="h-16 border-b border-slate-200 flex items-center justify-between px-8 bg-slate-50">
         <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest">상세 인스펙터</h3>
         <button onClick={onClose} className="p-2 hover:bg-white rounded-xl border border-transparent hover:border-slate-300 transition-all">
