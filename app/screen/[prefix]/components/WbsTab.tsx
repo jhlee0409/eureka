@@ -61,18 +61,18 @@ export function WbsTab({
   });
 
   return (
-    <div className="space-y-12">
+    <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-3xl font-black text-slate-900 tracking-tighter uppercase leading-none">작업 로드맵</h2>
-          <p className="text-[10px] text-slate-600 font-bold mt-2 uppercase tracking-widest">
+          <h2 className="text-lg font-bold text-slate-800 tracking-tight">작업 로드맵</h2>
+          <p className="text-[9px] text-slate-500 font-medium mt-0.5">
             {isMasterView ? '전체 화면 통합 보기 (읽기 전용)' : `${activeScreen?.name || ''} 상세 작업`}
           </p>
         </div>
         {!isMasterView && (
           <button
             onClick={() => setShowAddModal(true)}
-            className="px-6 py-3 bg-slate-900 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-xl hover:bg-black transition-all"
+            className="px-3 py-1.5 bg-slate-800 text-white rounded-lg text-[10px] font-bold hover:bg-slate-900 transition-all"
           >
             + 업무 추가
           </button>
@@ -89,7 +89,7 @@ export function WbsTab({
       />
 
       {wbsTasks.length === 0 ? (
-        <div className="p-20 text-center border-2 border-dashed border-slate-300 rounded-[3rem] bg-slate-50 text-slate-500 font-black uppercase tracking-widest">
+        <div className="p-8 text-center border border-dashed border-slate-200 rounded-lg bg-slate-50 text-slate-400 text-xs font-bold">
           업무 데이터가 없습니다.
         </div>
       ) : (

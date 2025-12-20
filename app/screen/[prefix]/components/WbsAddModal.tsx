@@ -116,32 +116,32 @@ export function WbsAddModal({ isOpen, onClose, onAdd, testCases, originScreenId 
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm">
-      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[85vh] overflow-hidden flex flex-col">
         {/* Header */}
-        <div className="p-6 border-b border-slate-200 flex items-center justify-between">
-          <h2 className="text-xl font-black text-slate-900">WBS 기능 추가</h2>
-          <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-xl transition-all">
-            <svg className="w-6 h-6 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" />
+        <div className="px-4 py-3 border-b border-slate-200 flex items-center justify-between">
+          <h2 className="text-sm font-bold text-slate-900">WBS 기능 추가</h2>
+          <button onClick={onClose} className="p-1 hover:bg-slate-100 rounded-lg transition-all">
+            <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
           {/* Step 1: Category */}
           <div>
-            <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-3">
+            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-2">
               Step 1. 기능 분류
             </label>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-1.5">
               {CATEGORY_CONFIG.map(cat => (
                 <button
                   key={cat.key}
                   onClick={() => setFormData({ ...formData, category: cat.key })}
-                  className={`px-4 py-2 rounded-xl text-sm font-black border-2 transition-all ${
+                  className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border transition-all ${
                     formData.category === cat.key
-                      ? cat.color + ' shadow-md scale-105'
+                      ? cat.color + ' shadow-sm'
                       : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
                   }`}
                 >
@@ -152,80 +152,79 @@ export function WbsAddModal({ isOpen, onClose, onAdd, testCases, originScreenId 
           </div>
 
           {/* Step 2: Details */}
-          <div className="space-y-4">
-            <label className="block text-xs font-black text-slate-500 uppercase tracking-widest">
+          <div className="space-y-3">
+            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wide">
               Step 2. 기능 상세
             </label>
 
             <div>
-              <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">기능명 *</label>
+              <label className="block text-[9px] font-bold text-slate-400 uppercase mb-1">기능명 *</label>
               <input
                 type="text"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 placeholder="예: 소셜 로그인 추가"
-                className="w-full px-4 py-3 rounded-xl border border-slate-300 text-sm font-bold outline-none focus:border-slate-900 focus:ring-2 focus:ring-slate-100"
+                className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs font-medium outline-none focus:border-slate-400 focus:ring-1 focus:ring-slate-200"
               />
             </div>
 
             <div>
-              <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">상세 설명</label>
+              <label className="block text-[9px] font-bold text-slate-400 uppercase mb-1">상세 설명</label>
               <textarea
                 value={formData.detail}
                 onChange={(e) => setFormData({ ...formData, detail: e.target.value })}
                 placeholder="기능에 대한 상세 설명..."
-                rows={3}
-                className="w-full px-4 py-3 rounded-xl border border-slate-300 text-sm font-bold outline-none focus:border-slate-900 focus:ring-2 focus:ring-slate-100 resize-none"
+                rows={2}
+                className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs font-medium outline-none focus:border-slate-400 focus:ring-1 focus:ring-slate-200 resize-none"
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">시작일</label>
+                <label className="block text-[9px] font-bold text-slate-400 uppercase mb-1">시작일</label>
                 <input
                   type="date"
                   value={formData.startDate}
                   onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-                  className="w-full px-4 py-3 rounded-xl border border-slate-300 text-sm font-bold outline-none focus:border-slate-900"
+                  className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs font-medium outline-none focus:border-slate-400"
                 />
               </div>
               <div>
-                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">종료일</label>
+                <label className="block text-[9px] font-bold text-slate-400 uppercase mb-1">종료일</label>
                 <input
                   type="date"
                   value={formData.endDate}
                   onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
-                  className="w-full px-4 py-3 rounded-xl border border-slate-300 text-sm font-bold outline-none focus:border-slate-900"
+                  className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs font-medium outline-none focus:border-slate-400"
                 />
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">담당자</label>
+                <label className="block text-[9px] font-bold text-slate-400 uppercase mb-1">담당자</label>
                 <select
                   value={formData.assignee}
                   onChange={(e) => setFormData({ ...formData, assignee: e.target.value })}
-                  className="w-full px-4 py-3 rounded-xl border border-slate-300 text-sm font-bold outline-none focus:border-slate-900"
+                  className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs font-medium outline-none focus:border-slate-400"
                 >
                   {TEAM_MEMBERS.map(m => <option key={m} value={m}>{m}</option>)}
                 </select>
               </div>
               <div>
-                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">난이도</label>
-                <div className="flex gap-2">
+                <label className="block text-[9px] font-bold text-slate-400 uppercase mb-1">난이도</label>
+                <div className="flex gap-1.5">
                   {DIFFICULTY_CONFIG.map(diff => (
                     <button
                       key={diff.key}
                       onClick={() => setFormData({ ...formData, difficulty: diff.key })}
-                      className={`flex-1 px-3 py-3 rounded-xl border-2 text-xs font-black transition-all ${
+                      className={`flex-1 px-2 py-1.5 rounded-lg border text-[10px] font-bold transition-all ${
                         formData.difficulty === diff.key
-                          ? 'bg-slate-900 text-white border-slate-900'
+                          ? 'bg-slate-800 text-white border-slate-800'
                           : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
                       }`}
                     >
                       {'●'.repeat(diff.dots)}{'○'.repeat(3 - diff.dots)}
-                      <span className="ml-1">{diff.label}</span>
                     </button>
                   ))}
                 </div>
@@ -236,14 +235,14 @@ export function WbsAddModal({ isOpen, onClose, onAdd, testCases, originScreenId 
           {/* Related TCs */}
           {unresolvedTcs.length > 0 && (
             <div>
-              <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-3">
+              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-2">
                 관련 TC 연결 (선택)
               </label>
-              <div className="max-h-40 overflow-y-auto border border-slate-200 rounded-xl p-3 space-y-2">
+              <div className="max-h-32 overflow-y-auto border border-slate-200 rounded-lg p-2 space-y-1">
                 {unresolvedTcs.map(tc => (
                   <label
                     key={tc.id}
-                    className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-all ${
+                    className={`flex items-center gap-2 p-2 rounded cursor-pointer transition-all ${
                       formData.relatedTcIds.includes(tc.id)
                         ? 'bg-blue-50 border border-blue-200'
                         : 'hover:bg-slate-50'
@@ -253,13 +252,13 @@ export function WbsAddModal({ isOpen, onClose, onAdd, testCases, originScreenId 
                       type="checkbox"
                       checked={formData.relatedTcIds.includes(tc.id)}
                       onChange={() => handleTcToggle(tc.id)}
-                      className="w-4 h-4 rounded"
+                      className="w-3 h-3 rounded"
                     />
-                    <div className="flex-1">
-                      <p className="text-sm font-bold text-slate-900">{tc.scenario}</p>
-                      <p className="text-[10px] text-slate-500">{tc.checkpoint || tc.position} · {tc.assignee}</p>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[10px] font-bold text-slate-900 truncate">{tc.scenario}</p>
+                      <p className="text-[9px] text-slate-500">{tc.checkpoint || tc.position} · {tc.assignee}</p>
                     </div>
-                    <span className={`px-2 py-1 rounded text-[9px] font-black uppercase ${
+                    <span className={`px-1.5 py-0.5 rounded text-[8px] font-bold ${
                       tc.priority === 'High' ? 'bg-red-100 text-red-700' :
                       tc.priority === 'Medium' ? 'bg-orange-100 text-orange-700' :
                       'bg-green-100 text-green-700'
@@ -274,33 +273,33 @@ export function WbsAddModal({ isOpen, onClose, onAdd, testCases, originScreenId 
 
           {/* Subtasks */}
           <div>
-            <div className="flex items-center justify-between mb-3">
-              <label className="block text-xs font-black text-slate-500 uppercase tracking-widest">
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wide">
                 Step 3. 하위 작업 (선택)
               </label>
               <button
                 onClick={() => setShowSubtasks(!showSubtasks)}
-                className="text-xs font-bold text-blue-600 hover:text-blue-800"
+                className="text-[10px] font-bold text-blue-600 hover:text-blue-800"
               >
                 {showSubtasks ? '접기' : '펼치기'}
               </button>
             </div>
 
             {showSubtasks && (
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {subtasks.map((st, idx) => (
-                  <div key={idx} className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl">
+                  <div key={idx} className="flex items-center gap-2 p-2 bg-slate-50 rounded-lg">
                     <input
                       type="text"
                       value={st.name}
                       onChange={(e) => handleSubtaskChange(idx, 'name', e.target.value)}
                       placeholder="하위 작업명"
-                      className="flex-1 px-3 py-2 rounded-lg border border-slate-300 text-sm font-bold outline-none"
+                      className="flex-1 px-2 py-1 rounded border border-slate-200 text-[10px] font-medium outline-none"
                     />
                     <select
                       value={st.assignee}
                       onChange={(e) => handleSubtaskChange(idx, 'assignee', e.target.value)}
-                      className="px-3 py-2 rounded-lg border border-slate-300 text-xs font-bold outline-none"
+                      className="px-2 py-1 rounded border border-slate-200 text-[10px] font-medium outline-none"
                     >
                       {TEAM_MEMBERS.map(m => <option key={m} value={m}>{m}</option>)}
                     </select>
@@ -308,20 +307,20 @@ export function WbsAddModal({ isOpen, onClose, onAdd, testCases, originScreenId 
                       type="date"
                       value={st.startDate}
                       onChange={(e) => handleSubtaskChange(idx, 'startDate', e.target.value)}
-                      className="px-2 py-2 rounded-lg border border-slate-300 text-xs font-bold outline-none w-32"
+                      className="px-1.5 py-1 rounded border border-slate-200 text-[10px] font-medium outline-none w-28"
                     />
-                    <span className="text-slate-400">~</span>
+                    <span className="text-slate-400 text-[10px]">~</span>
                     <input
                       type="date"
                       value={st.endDate}
                       onChange={(e) => handleSubtaskChange(idx, 'endDate', e.target.value)}
-                      className="px-2 py-2 rounded-lg border border-slate-300 text-xs font-bold outline-none w-32"
+                      className="px-1.5 py-1 rounded border border-slate-200 text-[10px] font-medium outline-none w-28"
                     />
                     <button
                       onClick={() => handleRemoveSubtask(idx)}
-                      className="p-2 text-red-500 hover:bg-red-50 rounded-lg"
+                      className="p-1 text-red-500 hover:bg-red-50 rounded"
                     >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
                       </svg>
                     </button>
@@ -329,7 +328,7 @@ export function WbsAddModal({ isOpen, onClose, onAdd, testCases, originScreenId 
                 ))}
                 <button
                   onClick={handleAddSubtask}
-                  className="w-full py-3 border-2 border-dashed border-slate-300 rounded-xl text-sm font-bold text-slate-500 hover:border-slate-400 hover:text-slate-600 transition-all"
+                  className="w-full py-2 border border-dashed border-slate-300 rounded-lg text-[10px] font-bold text-slate-500 hover:border-slate-400 hover:text-slate-600 transition-all"
                 >
                   + 하위 작업 추가
                 </button>
@@ -339,17 +338,17 @@ export function WbsAddModal({ isOpen, onClose, onAdd, testCases, originScreenId 
         </div>
 
         {/* Footer */}
-        <div className="p-6 border-t border-slate-200 flex items-center justify-end gap-3">
+        <div className="px-4 py-3 border-t border-slate-200 flex items-center justify-end gap-2">
           <button
             onClick={onClose}
-            className="px-6 py-3 rounded-xl text-sm font-black text-slate-600 hover:bg-slate-100 transition-all"
+            className="px-3 py-1.5 rounded-lg text-xs font-bold text-slate-600 hover:bg-slate-100 transition-all"
           >
             취소
           </button>
           <button
             onClick={handleSubmit}
             disabled={!formData.name.trim()}
-            className="px-8 py-3 rounded-xl text-sm font-black bg-slate-900 text-white hover:bg-black transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-4 py-1.5 rounded-lg text-xs font-bold bg-slate-800 text-white hover:bg-slate-900 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
             등록
           </button>

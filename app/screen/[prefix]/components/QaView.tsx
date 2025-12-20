@@ -120,34 +120,34 @@ export function QaView({
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-4">
       {/* QA Summary Header */}
-      <div className="bg-gradient-to-r from-slate-900 to-slate-800 p-6 rounded-2xl text-white">
-        <div className="flex items-center justify-between mb-4">
+      <div className="bg-gradient-to-r from-slate-800 to-slate-700 p-4 rounded-lg text-white">
+        <div className="flex items-center justify-between mb-2">
           <div>
-            <h2 className="text-xl font-black">이 화면 TC 현황</h2>
-            <p className="text-slate-400 text-sm">Quality Assurance Overview</p>
+            <h2 className="text-sm font-bold">이 화면 TC 현황</h2>
+            <p className="text-slate-400 text-[10px]">Quality Assurance Overview</p>
           </div>
           <div className="text-right">
-            <p className="text-4xl font-black">{stats.rate}%</p>
-            <p className="text-[10px] text-slate-400 uppercase tracking-widest">해결율</p>
+            <p className="text-2xl font-bold">{stats.rate}%</p>
+            <p className="text-[9px] text-slate-400 uppercase tracking-wide">해결율</p>
           </div>
         </div>
-        <div className="flex items-center gap-6 text-sm">
+        <div className="flex items-center gap-4 text-[10px]">
           <div>
             <span className="text-slate-400">전체:</span>
-            <span className="font-black ml-2">{stats.total}건</span>
+            <span className="font-bold ml-1">{stats.total}건</span>
           </div>
           <div>
             <span className="text-red-400">오류:</span>
-            <span className="font-black ml-2">{stats.errors}건</span>
+            <span className="font-bold ml-1">{stats.errors}건</span>
           </div>
           <div>
             <span className="text-green-400">해결:</span>
-            <span className="font-black ml-2">{stats.resolved}건</span>
+            <span className="font-bold ml-1">{stats.resolved}건</span>
           </div>
         </div>
-        <div className="mt-4 h-3 bg-slate-700 rounded-full overflow-hidden">
+        <div className="mt-2 h-1.5 bg-slate-600 rounded-full overflow-hidden">
           <div
             className="h-full bg-gradient-to-r from-green-500 to-emerald-400 transition-all duration-500"
             style={{ width: `${stats.rate}%` }}
@@ -157,17 +157,17 @@ export function QaView({
 
       {/* Quick Add Form */}
       {!isMasterView && (
-        <div className="bg-blue-50 p-6 rounded-2xl border-2 border-blue-200">
-          <h3 className="text-sm font-black text-blue-900 mb-4 flex items-center gap-2">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4" />
+        <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
+          <h3 className="text-[10px] font-bold text-blue-900 mb-2 flex items-center gap-1.5">
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
             </svg>
             이슈 빠른 등록
           </h3>
-          <div className="flex flex-wrap gap-3 mb-4">
+          <div className="flex flex-wrap gap-1.5 mb-2">
             <button
               onClick={() => setQuickAdd(prev => ({ ...prev, position: 'Design' }))}
-              className={`px-4 py-2 rounded-xl text-xs font-black transition-all ${
+              className={`px-2 py-1 rounded text-[9px] font-bold transition-all ${
                 quickAdd.position === 'Design' ? 'bg-pink-500 text-white' : 'bg-white text-slate-600 border border-slate-200'
               }`}
             >
@@ -175,7 +175,7 @@ export function QaView({
             </button>
             <button
               onClick={() => setQuickAdd(prev => ({ ...prev, position: 'Front-end' }))}
-              className={`px-4 py-2 rounded-xl text-xs font-black transition-all ${
+              className={`px-2 py-1 rounded text-[9px] font-bold transition-all ${
                 quickAdd.position === 'Front-end' ? 'bg-blue-500 text-white' : 'bg-white text-slate-600 border border-slate-200'
               }`}
             >
@@ -183,7 +183,7 @@ export function QaView({
             </button>
             <button
               onClick={() => setQuickAdd(prev => ({ ...prev, position: 'Back-end' }))}
-              className={`px-4 py-2 rounded-xl text-xs font-black transition-all ${
+              className={`px-2 py-1 rounded text-[9px] font-bold transition-all ${
                 quickAdd.position === 'Back-end' ? 'bg-green-500 text-white' : 'bg-white text-slate-600 border border-slate-200'
               }`}
             >
@@ -191,33 +191,33 @@ export function QaView({
             </button>
             <button
               onClick={() => setQuickAdd(prev => ({ ...prev, position: 'PM' }))}
-              className={`px-4 py-2 rounded-xl text-xs font-black transition-all ${
+              className={`px-2 py-1 rounded text-[9px] font-bold transition-all ${
                 quickAdd.position === 'PM' ? 'bg-purple-500 text-white' : 'bg-white text-slate-600 border border-slate-200'
               }`}
             >
               📋 PM
             </button>
           </div>
-          <div className="flex gap-3">
+          <div className="flex gap-2">
             <input
               type="text"
               value={quickAdd.checkpoint}
               onChange={(e) => setQuickAdd(prev => ({ ...prev, checkpoint: e.target.value }))}
-              placeholder="체크포인트 (위치)"
-              className="w-32 px-4 py-3 rounded-xl text-sm font-bold border border-blue-200 outline-none focus:border-blue-500"
+              placeholder="체크포인트"
+              className="w-24 px-2 py-1.5 rounded text-[10px] font-medium border border-blue-200 outline-none focus:border-blue-400"
             />
             <input
               type="text"
               value={quickAdd.scenario}
               onChange={(e) => setQuickAdd(prev => ({ ...prev, scenario: e.target.value }))}
               placeholder="이슈 시나리오를 입력하세요..."
-              className="flex-1 px-4 py-3 rounded-xl text-sm font-bold border border-blue-200 outline-none focus:border-blue-500"
+              className="flex-1 px-2 py-1.5 rounded text-[10px] font-medium border border-blue-200 outline-none focus:border-blue-400"
               onKeyDown={(e) => e.key === 'Enter' && handleQuickAdd()}
             />
             <select
               value={quickAdd.priority}
               onChange={(e) => setQuickAdd(prev => ({ ...prev, priority: e.target.value as QAPriority }))}
-              className="px-4 py-3 rounded-xl text-sm font-black border border-blue-200 outline-none"
+              className="px-2 py-1.5 rounded text-[10px] font-bold border border-blue-200 outline-none"
             >
               <option value="High">🔴 High</option>
               <option value="Medium">🟠 Medium</option>
@@ -225,7 +225,7 @@ export function QaView({
             </select>
             <button
               onClick={handleQuickAdd}
-              className="px-6 py-3 bg-blue-600 text-white rounded-xl text-sm font-black hover:bg-blue-700 transition-all"
+              className="px-3 py-1.5 bg-blue-600 text-white rounded text-[10px] font-bold hover:bg-blue-700 transition-all"
             >
               등록
             </button>
@@ -234,7 +234,7 @@ export function QaView({
       )}
 
       {/* TC List by Status */}
-      <div className="space-y-6">
+      <div className="space-y-3">
         {STATUS_ORDER.map(status => {
           const tcs = tcByStatus[status];
           if (tcs.length === 0) return null;
@@ -242,37 +242,37 @@ export function QaView({
           const isError = status === 'DevError' || status === 'ProdError';
 
           return (
-            <div key={status} className={`rounded-2xl border-2 overflow-hidden ${config.bgColor}`}>
-              <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
-                <h3 className={`text-sm font-black ${config.color} flex items-center gap-2`}>
-                  {isError && <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>}
+            <div key={status} className={`rounded-lg border overflow-hidden ${config.bgColor}`}>
+              <div className="px-3 py-2 border-b border-slate-200/50 flex items-center justify-between">
+                <h3 className={`text-[10px] font-bold ${config.color} flex items-center gap-1.5`}>
+                  {isError && <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse"></span>}
                   {config.label} ({tcs.length}건)
                 </h3>
               </div>
-              <div className="p-4 space-y-3">
+              <div className="p-2 space-y-1.5">
                 {tcs.map(tc => (
                   <div
                     key={tc.id}
-                    className="bg-white p-4 rounded-xl border border-slate-200 flex items-center justify-between group hover:shadow-md transition-all"
+                    className="bg-white p-2.5 rounded border border-slate-200 flex items-center justify-between group hover:shadow-sm transition-all"
                   >
-                    <div className="flex items-center gap-4">
-                      <div className={`w-3 h-3 rounded-full shrink-0 ${
+                    <div className="flex items-center gap-2">
+                      <div className={`w-2 h-2 rounded-full shrink-0 ${
                         tc.priority === 'High' ? 'bg-red-500' :
                         tc.priority === 'Medium' ? 'bg-orange-500' : 'bg-green-500'
                       }`} />
                       <div>
-                        <div className="flex items-center gap-2 mb-1">
+                        <div className="flex items-center gap-1.5 mb-0.5">
                           {tc.checkpoint && (
-                            <span className="text-[10px] font-black text-purple-600 bg-purple-100 px-2 py-0.5 rounded">
+                            <span className="text-[9px] font-bold text-purple-600 bg-purple-100 px-1.5 py-0.5 rounded">
                               {tc.checkpoint}
                             </span>
                           )}
-                          <span className="text-[10px] font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded">
+                          <span className="text-[9px] font-medium text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">
                             {tc.position}
                           </span>
                         </div>
-                        <p className="text-sm font-bold text-slate-900">{tc.scenario}</p>
-                        <div className="flex items-center gap-3 mt-1 text-[10px] text-slate-500">
+                        <p className="text-[10px] font-bold text-slate-900">{tc.scenario}</p>
+                        <div className="flex items-center gap-2 mt-0.5 text-[9px] text-slate-500">
                           <span>담당: {tc.assignee}</span>
                           <span>|</span>
                           <span>{tc.date}</span>
@@ -283,7 +283,7 @@ export function QaView({
                       <select
                         value={tc.status}
                         onChange={(e) => handleStatusChange(tc.id, e.target.value as QAStatus)}
-                        className="px-3 py-2 rounded-lg text-[10px] font-black border border-slate-200 outline-none cursor-pointer bg-white"
+                        className="px-2 py-1 rounded text-[9px] font-bold border border-slate-200 outline-none cursor-pointer bg-white"
                       >
                         <option value="Reviewing">검토중</option>
                         <option value="DevError">Dev 오류</option>
@@ -302,23 +302,23 @@ export function QaView({
       </div>
 
       {/* Assignee Distribution */}
-      <div className="bg-white p-6 rounded-2xl border border-slate-200">
-        <h3 className="text-sm font-black text-slate-900 mb-4 flex items-center gap-2">
-          <span className="w-3 h-3 bg-cyan-500 rounded-full"></span>
+      <div className="bg-white p-3 rounded-lg border border-slate-200">
+        <h3 className="text-[10px] font-bold text-slate-800 mb-2 flex items-center gap-1.5">
+          <span className="w-2 h-2 bg-cyan-500 rounded-full"></span>
           담당자별 배분 현황
         </h3>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-1.5">
           {Object.entries(tcByAssignee).map(([name, count]) => {
             if (count === 0) return null;
             const maxCount = Math.max(...Object.values(tcByAssignee));
             const width = maxCount > 0 ? (count / maxCount) * 100 : 0;
             return (
-              <div key={name} className="flex items-center gap-2 bg-slate-50 px-3 py-2 rounded-lg">
-                <span className="text-xs font-black text-slate-700">{name}:</span>
-                <div className="w-20 h-2 bg-slate-200 rounded-full overflow-hidden">
+              <div key={name} className="flex items-center gap-1.5 bg-slate-50 px-2 py-1 rounded">
+                <span className="text-[9px] font-bold text-slate-600">{name}:</span>
+                <div className="w-16 h-1.5 bg-slate-200 rounded-full overflow-hidden">
                   <div className="h-full bg-cyan-500 rounded-full" style={{ width: `${width}%` }} />
                 </div>
-                <span className="text-xs font-black text-slate-500">{count}건</span>
+                <span className="text-[9px] font-bold text-slate-500">{count}건</span>
               </div>
             );
           })}
@@ -326,10 +326,10 @@ export function QaView({
       </div>
 
       {testCases.length === 0 && (
-        <div className="p-12 text-center bg-slate-50 rounded-2xl border-2 border-dashed border-slate-300">
-          <p className="text-slate-400 font-bold">등록된 TC가 없습니다.</p>
+        <div className="p-8 text-center bg-slate-50 rounded-lg border border-dashed border-slate-200">
+          <p className="text-slate-400 text-xs font-medium">등록된 TC가 없습니다.</p>
           {!isMasterView && (
-            <p className="text-sm text-slate-400 mt-2">위의 빠른 등록 폼을 사용하여 이슈를 등록하세요.</p>
+            <p className="text-[10px] text-slate-400 mt-1">위의 빠른 등록 폼을 사용하여 이슈를 등록하세요.</p>
           )}
         </div>
       )}
