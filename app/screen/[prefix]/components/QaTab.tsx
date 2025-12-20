@@ -1,9 +1,8 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { TestCase, WbsTask } from '../../../types';
-import { TestCaseCard } from './TestCaseCard';
-import { TestCaseInspector } from './TestCaseInspector';
+import { ExpandableTestCaseCard } from './ExpandableTestCaseCard';
 import { TcAddModal } from './TcAddModal';
 
 interface QaTabProps {
@@ -29,18 +28,16 @@ export function QaTab({
   addTestCase,
   originScreenId
 }: QaTabProps) {
-  const [editingQAId, setEditingQAId] = useState<string | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
 
-  const editingQA = useMemo(() => testCases.find(t => t.id === editingQAId), [testCases, editingQAId]);
-
   return (
-    <div className="space-y-10 relative">
+    <div className="space-y-8">
+      {/* 헤더 */}
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-3xl font-black text-slate-900 tracking-tighter uppercase leading-none">품질 관리 보드</h2>
           <p className="text-[10px] text-slate-600 font-bold mt-2 uppercase tracking-widest">
-            {isMasterView ? '전체 화면 통합 보기 (읽기 전용)' : ''}
+            {isMasterView ? '전체 화면 통합 보기 (읽기 전용)' : '카드를 클릭하여 상세 정보 확인 및 수정'}
           </p>
           <div className="mt-4 flex items-center gap-4">
             <div className="w-40 h-3 bg-slate-100 rounded-full overflow-hidden border border-slate-300">
@@ -68,32 +65,30 @@ export function QaTab({
         originScreenId={originScreenId}
       />
 
-      <div className="grid grid-cols-1 gap-4">
+      {/* TC 카드 목록 - Inline Expandable 패턴 */}
+      <div className="space-y-3">
         {testCases.map(tc => (
-          <TestCaseCard
+          <ExpandableTestCaseCard
             key={tc.id}
             tc={tc}
             isMasterView={isMasterView}
-            isSelected={editingQAId === tc.id}
             getScreenNameById={getScreenNameById}
-            onSelect={() => setEditingQAId(tc.id)}
+            updateTestCase={updateTestCase}
+            deleteTestCase={deleteTestCase}
           />
         ))}
         {testCases.length === 0 && (
-          <div className="p-20 text-center bg-slate-50 rounded-[3rem] border-2 border-dashed border-slate-300 text-base font-black text-slate-400 uppercase tracking-widest">
-            등록된 이슈가 없습니다.
+          <div className="p-16 text-center bg-slate-50 rounded-2xl border-2 border-dashed border-slate-300">
+            <svg className="w-12 h-12 text-slate-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+            </svg>
+            <p className="text-base font-black text-slate-400 uppercase tracking-widest">등록된 이슈가 없습니다</p>
+            {!isMasterView && (
+              <p className="text-sm text-slate-400 mt-2">상단의 "이슈 등록" 버튼을 클릭하여 새 이슈를 추가하세요.</p>
+            )}
           </div>
         )}
       </div>
-
-      {editingQA && (
-        <TestCaseInspector
-          testCase={editingQA}
-          updateTestCase={updateTestCase}
-          deleteTestCase={deleteTestCase}
-          onClose={() => setEditingQAId(null)}
-        />
-      )}
     </div>
   );
 }
