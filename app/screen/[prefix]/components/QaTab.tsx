@@ -1,40 +1,38 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { TestCase } from '../../../types';
+import { TestCase, WbsTask } from '../../../types';
 import { TestCaseCard } from './TestCaseCard';
 import { TestCaseInspector } from './TestCaseInspector';
+import { TcAddModal } from './TcAddModal';
 
 interface QaTabProps {
   testCases: TestCase[];
+  wbsTasks: WbsTask[];
   isMasterView: boolean;
   qaProgress: number;
   getScreenNameById: (figmaId: string | undefined) => string;
   updateTestCase: (id: string, updates: Partial<TestCase>) => void;
   deleteTestCase: (id: string) => void;
-  addTestCase: () => void;
+  addTestCase: (tc: TestCase) => void;
+  originScreenId: string;
 }
 
 export function QaTab({
   testCases,
+  wbsTasks,
   isMasterView,
   qaProgress,
   getScreenNameById,
   updateTestCase,
   deleteTestCase,
-  addTestCase
+  addTestCase,
+  originScreenId
 }: QaTabProps) {
   const [editingQAId, setEditingQAId] = useState<string | null>(null);
+  const [showAddModal, setShowAddModal] = useState(false);
 
   const editingQA = useMemo(() => testCases.find(t => t.id === editingQAId), [testCases, editingQAId]);
-
-  const handleAddTestCase = () => {
-    addTestCase();
-    // Get the newly created test case (last one)
-    const newId = testCases.length > 0 ? testCases[testCases.length - 1]?.id : null;
-    // Note: This won't work correctly as addTestCase is async
-    // We need to refactor this if we want auto-open behavior
-  };
 
   return (
     <div className="space-y-10 relative">
@@ -53,13 +51,22 @@ export function QaTab({
         </div>
         {!isMasterView && (
           <button
-            onClick={addTestCase}
+            onClick={() => setShowAddModal(true)}
             className="px-8 py-3 bg-slate-900 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-xl hover:bg-black transition-all"
           >
             + 이슈 등록
           </button>
         )}
       </div>
+
+      {/* TC Add Modal */}
+      <TcAddModal
+        isOpen={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        onAdd={addTestCase}
+        wbsTasks={wbsTasks}
+        originScreenId={originScreenId}
+      />
 
       <div className="grid grid-cols-1 gap-4">
         {testCases.map(tc => (

@@ -81,6 +81,17 @@ export interface ParsedState {
 }
 
 export type WbsStatus = 'Planning' | 'In Progress' | 'Done';
+export type WbsCategory = 'ui' | 'feature' | 'bugfix' | 'planning' | 'optimization';
+export type WbsDifficulty = 'easy' | 'medium' | 'hard';
+
+export interface WbsSubTask {
+  id: string;
+  name: string;
+  assignee: string;
+  startDate: string;
+  endDate: string;
+  completed: boolean;
+}
 
 export interface WbsTask {
   id: string;
@@ -90,7 +101,12 @@ export interface WbsTask {
   assignee: string;
   startDate: string;
   endDate: string;
-  originScreenId?: string; // Track which screen this belongs to
+  originScreenId?: string;
+  // 확장 필드
+  category?: WbsCategory;
+  difficulty?: WbsDifficulty;
+  relatedTcIds?: string[];  // 연결된 TC
+  subtasks?: WbsSubTask[];  // 하위 작업
 }
 
 // TC 자체의 상태
@@ -100,7 +116,9 @@ export type QAStatus =
   | 'ProdError'    // Prod 오류
   | 'DevDone'      // Dev 완료
   | 'ProdDone'     // Prod 완료
-  | 'Hold';        // 보류
+  | 'Hold'         // 보류
+  | 'Rejected'     // 반려
+  | 'Duplicate';   // 중복
 
 // 담당자 진행도
 export type QAProgress =
@@ -112,12 +130,40 @@ export type QAProgress =
 
 export type QAPriority = 'High' | 'Medium' | 'Low';
 export type QAPosition = 'Front-end' | 'Back-end' | 'Design' | 'PM';
+export type IssueType = 'bug' | 'improvement' | 'question' | 'task';
+export type RejectReason = 'not_reproducible' | 'working_as_designed' | 'duplicate' | 'insufficient_info' | 'out_of_scope';
+export type DeployEnv = 'dev' | 'staging' | 'prod';
 
 export interface Comment {
   id: string;
   userName: string;
   timestamp: string;
   text: string;
+}
+
+export interface VerificationItem {
+  id: string;
+  text: string;
+  checked: boolean;
+}
+
+// 활동 로그 (타임라인용)
+export interface ActivityLog {
+  id: string;
+  tcId: string;
+  action: 'created' | 'status_changed' | 'assigned' | 'commented' | 'verified' | 'rejected' | 'deployed';
+  actor: string;
+  actorRole: 'qa' | 'developer';
+  timestamp: string;
+  details?: {
+    fromStatus?: QAStatus;
+    toStatus?: QAStatus;
+    fromProgress?: QAProgress;
+    toProgress?: QAProgress;
+    comment?: string;
+    deployEnv?: DeployEnv;
+    rejectReason?: RejectReason;
+  };
 }
 
 export interface TestCase {
@@ -134,5 +180,15 @@ export interface TestCase {
   assignee: string;
   progress: QAProgress; // 담당자 진행도
   comments: Comment[];
-  originScreenId?: string; // Track which screen this belongs to
+  originScreenId?: string;
+  // 확장 필드
+  issueType?: IssueType;           // 이슈 유형
+  reproductionSteps?: string;      // 재현 방법
+  expectedResult?: string;         // 기대 결과
+  environment?: string;            // 테스트 환경
+  relatedWbsId?: string;           // 연결된 WBS
+  verificationChecklist?: VerificationItem[];  // 검증 체크리스트
+  rejectReason?: RejectReason;     // 반려 사유
+  deployedEnvs?: DeployEnv[];      // 배포된 환경
+  activityLog?: ActivityLog[];     // 활동 로그
 }

@@ -212,6 +212,7 @@ export default function ScreenDetailPage() {
                 {activeTab === 'wbs' ? (
                   <WbsTab
                     wbsTasks={wbsTasks}
+                    testCases={testCases}
                     isMasterView={isMasterView}
                     activeScreen={activeScreen}
                     getScreenNameById={getScreenNameById}
@@ -222,12 +223,14 @@ export default function ScreenDetailPage() {
                 ) : (
                   <QaTab
                     testCases={testCases}
+                    wbsTasks={wbsTasks}
                     isMasterView={isMasterView}
                     qaProgress={qaProgress}
                     getScreenNameById={getScreenNameById}
                     updateTestCase={updateTestCase}
                     deleteTestCase={deleteTestCase}
                     addTestCase={addTestCase}
+                    originScreenId={activeScreen?.figmaId || ''}
                   />
                 )}
               </div>
@@ -253,6 +256,7 @@ export default function ScreenDetailPage() {
                 deleteTestCase={deleteTestCase}
                 isMasterView={isMasterView}
                 getScreenNameById={getScreenNameById}
+                originScreenId={activeScreen?.figmaId || ''}
               />
             </div>
           )}

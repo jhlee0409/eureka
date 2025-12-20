@@ -1,23 +1,26 @@
 'use client';
 
-import React, { useMemo } from 'react';
-import { WbsTask, ScreenData } from '../../../types';
+import React, { useMemo, useState } from 'react';
+import { WbsTask, ScreenData, TestCase } from '../../../types';
 import { GanttChart } from './GanttChart';
 import { WbsTable } from './WbsTable';
+import { WbsAddModal } from './WbsAddModal';
 import { useGanttDrag } from '../hooks/useGanttDrag';
 
 interface WbsTabProps {
   wbsTasks: WbsTask[];
+  testCases: TestCase[];
   isMasterView: boolean;
   activeScreen: ScreenData | null;
   getScreenNameById: (figmaId: string | undefined) => string;
   updateWbsTask: (id: string, updates: Partial<WbsTask>) => void;
   deleteWbsTask: (id: string) => void;
-  addWbsTask: () => void;
+  addWbsTask: (task: WbsTask) => void;
 }
 
 export function WbsTab({
   wbsTasks,
+  testCases,
   isMasterView,
   activeScreen,
   getScreenNameById,
@@ -25,6 +28,8 @@ export function WbsTab({
   deleteWbsTask,
   addWbsTask
 }: WbsTabProps) {
+  const [showAddModal, setShowAddModal] = useState(false);
+
   const timelineRange = useMemo(() => {
     if (wbsTasks.length === 0) return null;
     const startDates = wbsTasks.map(t => new Date(t.startDate).getTime()).filter(d => !isNaN(d));
@@ -66,13 +71,22 @@ export function WbsTab({
         </div>
         {!isMasterView && (
           <button
-            onClick={addWbsTask}
+            onClick={() => setShowAddModal(true)}
             className="px-6 py-3 bg-slate-900 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-xl hover:bg-black transition-all"
           >
             + 업무 추가
           </button>
         )}
       </div>
+
+      {/* WBS Add Modal */}
+      <WbsAddModal
+        isOpen={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        onAdd={addWbsTask}
+        testCases={testCases}
+        originScreenId={activeScreen?.figmaId || ''}
+      />
 
       {wbsTasks.length === 0 ? (
         <div className="p-20 text-center border-2 border-dashed border-slate-300 rounded-[3rem] bg-slate-50 text-slate-500 font-black uppercase tracking-widest">

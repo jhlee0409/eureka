@@ -58,6 +58,8 @@ export default function QADashboard() {
       'DevDone': 0,
       'ProdDone': 0,
       'Hold': 0,
+      'Rejected': 0,
+      'Duplicate': 0,
     };
     allTestCases.forEach(tc => {
       stats[tc.status]++;

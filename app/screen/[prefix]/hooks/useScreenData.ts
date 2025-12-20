@@ -15,8 +15,8 @@ interface UseScreenDataReturn {
   qaProgress: number;
   updateWbsTask: (id: string, updates: Partial<WbsTask>) => void;
   updateTestCase: (id: string, updates: Partial<TestCase>) => void;
-  addWbsTask: () => void;
-  addTestCase: () => void;
+  addWbsTask: (task: WbsTask) => void;
+  addTestCase: (tc: TestCase) => void;
   deleteWbsTask: (id: string) => void;
   deleteTestCase: (id: string) => void;
   getScreenNameById: (figmaId: string | undefined) => string;
@@ -91,48 +91,28 @@ export function useScreenData({ allScreens, activeScreenId }: UseScreenDataProps
     });
   }, [wbsTasks, saveToStorage]);
 
-  const addWbsTask = useCallback(() => {
-    const today = new Date().toISOString().split('T')[0];
-    const newTask: WbsTask = {
-      id: crypto.randomUUID(),
-      name: '신규 작업 항목',
-      detail: '',
-      status: 'Planning',
-      assignee: TEAM_MEMBERS[0],
-      startDate: today,
-      endDate: today,
-      originScreenId: activeScreensForData[0]?.figmaId || ''
+  const addWbsTask = useCallback((task: WbsTask) => {
+    const taskWithScreen = {
+      ...task,
+      originScreenId: task.originScreenId || activeScreensForData[0]?.figmaId || ''
     };
     setWbsTasks(prev => {
-      const next = [...prev, newTask];
+      const next = [...prev, taskWithScreen];
       saveToStorage(next, testCases);
       return next;
     });
   }, [activeScreensForData, testCases, saveToStorage]);
 
-  const addTestCase = useCallback(() => {
-    const newTC: TestCase = {
-      id: crypto.randomUUID(),
-      checkpoint: '',
-      scenario: '이슈 발생 확인 필요',
-      issueContent: '',
-      referenceLink: '',
-      date: new Date().toISOString().split('T')[0],
-      status: 'Reviewing',
-      reporter: TEAM_MEMBERS[0],
-      priority: 'Medium',
-      position: 'Front-end',
-      assignee: TEAM_MEMBERS[1],
-      progress: 'Waiting',
-      comments: [],
-      originScreenId: activeScreensForData[0]?.figmaId || ''
+  const addTestCase = useCallback((tc: TestCase) => {
+    const tcWithScreen = {
+      ...tc,
+      originScreenId: tc.originScreenId || activeScreensForData[0]?.figmaId || ''
     };
     setTestCases(prev => {
-      const next = [...prev, newTC];
+      const next = [...prev, tcWithScreen];
       saveToStorage(wbsTasks, next);
       return next;
     });
-    return newTC.id;
   }, [activeScreensForData, wbsTasks, saveToStorage]);
 
   const deleteWbsTask = useCallback((id: string) => {

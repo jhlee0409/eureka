@@ -6,14 +6,15 @@ import { TEAM_MEMBERS } from '../hooks/useScreenData';
 
 interface QaViewProps {
   testCases: TestCase[];
-  addTestCase: () => void;
+  addTestCase: (tc: TestCase) => void;
   updateTestCase: (id: string, updates: Partial<TestCase>) => void;
   deleteTestCase: (id: string) => void;
   isMasterView: boolean;
   getScreenNameById: (figmaId: string | undefined) => string;
+  originScreenId?: string;
 }
 
-const STATUS_ORDER: QAStatus[] = ['DevError', 'ProdError', 'Reviewing', 'Hold', 'DevDone', 'ProdDone'];
+const STATUS_ORDER: QAStatus[] = ['DevError', 'ProdError', 'Reviewing', 'Rejected', 'Hold', 'Duplicate', 'DevDone', 'ProdDone'];
 
 const STATUS_CONFIG: Record<QAStatus, { label: string; color: string; bgColor: string }> = {
   'Reviewing': { label: '검토중', color: 'text-yellow-700', bgColor: 'bg-yellow-50 border-yellow-200' },
@@ -22,6 +23,8 @@ const STATUS_CONFIG: Record<QAStatus, { label: string; color: string; bgColor: s
   'DevDone': { label: 'Dev 완료', color: 'text-green-700', bgColor: 'bg-green-50 border-green-200' },
   'ProdDone': { label: 'Prod 완료', color: 'text-emerald-700', bgColor: 'bg-emerald-50 border-emerald-200' },
   'Hold': { label: '보류', color: 'text-orange-700', bgColor: 'bg-orange-50 border-orange-200' },
+  'Rejected': { label: '반려', color: 'text-gray-700', bgColor: 'bg-gray-50 border-gray-200' },
+  'Duplicate': { label: '중복', color: 'text-purple-700', bgColor: 'bg-purple-50 border-purple-200' },
 };
 
 export function QaView({
@@ -30,7 +33,8 @@ export function QaView({
   updateTestCase,
   deleteTestCase,
   isMasterView,
-  getScreenNameById
+  getScreenNameById,
+  originScreenId = ''
 }: QaViewProps) {
   // Quick add form state
   const [quickAdd, setQuickAdd] = useState({
@@ -58,9 +62,13 @@ export function QaView({
       'DevDone': [],
       'ProdDone': [],
       'Hold': [],
+      'Rejected': [],
+      'Duplicate': [],
     };
     testCases.forEach(tc => {
-      grouped[tc.status].push(tc);
+      if (grouped[tc.status]) {
+        grouped[tc.status].push(tc);
+      }
     });
     return grouped;
   }, [testCases]);
@@ -83,8 +91,6 @@ export function QaView({
   const handleQuickAdd = () => {
     if (!quickAdd.scenario.trim()) return;
 
-    // This will trigger the addTestCase and we need to update it
-    // For now, we'll add directly with custom data
     const newTC: TestCase = {
       id: crypto.randomUUID(),
       checkpoint: quickAdd.checkpoint,
@@ -99,13 +105,13 @@ export function QaView({
       assignee: TEAM_MEMBERS[1],
       progress: 'Waiting',
       comments: [],
+      originScreenId,
     };
+
+    addTestCase(newTC);
 
     // Reset form
     setQuickAdd({ checkpoint: '', scenario: '', position: 'Front-end', priority: 'Medium' });
-
-    // Add via parent (we'll need to modify this)
-    addTestCase();
   };
 
   const handleStatusChange = (tcId: string, newStatus: QAStatus) => {
