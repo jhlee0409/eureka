@@ -223,20 +223,20 @@ export function ExpandableTestCaseCard({
 
   return (
     <div
-      className={`rounded-2xl border-2 transition-all bg-white overflow-hidden ${
-        isExpanded ? 'border-slate-900 shadow-xl' : isClosed ? 'border-slate-100 bg-slate-50' : 'border-slate-200 hover:border-slate-300'
+      className={`rounded-lg border transition-all bg-white overflow-hidden ${
+        isExpanded ? 'border-slate-400 shadow-md' : isClosed ? 'border-slate-100 bg-slate-50' : 'border-slate-200 hover:border-slate-300'
       }`}
     >
       {/* ===== 접힌 상태 (Collapsed Header) ===== */}
       <div
         onClick={() => !isMasterView && setIsExpanded(!isExpanded)}
-        className={`p-5 flex items-center gap-4 ${!isMasterView ? 'cursor-pointer' : ''} ${isClosed ? 'opacity-70' : ''}`}
+        className={`px-3 py-2 flex items-center gap-2.5 ${!isMasterView ? 'cursor-pointer hover:bg-slate-50' : ''} ${isClosed ? 'opacity-60' : ''}`}
       >
         {/* 확장 아이콘 */}
         {!isMasterView && (
-          <button className="shrink-0 p-1">
+          <button className="shrink-0">
             <svg
-              className={`w-5 h-5 text-slate-400 transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`}
+              className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`}
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -248,49 +248,49 @@ export function ExpandableTestCaseCard({
 
         {/* 우선순위 표시 */}
         <div
-          className={`w-3 h-3 rounded-full shrink-0 ${
-            tc.priority === 'High' ? 'bg-red-500' : tc.priority === 'Medium' ? 'bg-orange-500' : 'bg-green-500'
+          className={`w-2 h-2 rounded-full shrink-0 ${
+            tc.priority === 'High' ? 'bg-red-500' : tc.priority === 'Medium' ? 'bg-orange-400' : 'bg-green-500'
           }`}
           title={tc.priority}
         />
 
         {/* 체크포인트 */}
-        <div className="w-20 shrink-0">
+        <div className="w-16 shrink-0">
           {tc.checkpoint ? (
-            <span className="text-[10px] font-black text-purple-700 bg-purple-100 px-2 py-1 rounded-lg truncate block">
+            <span className="text-[9px] font-bold text-purple-700 bg-purple-50 px-1.5 py-0.5 rounded truncate block">
               {tc.checkpoint}
             </span>
           ) : (
-            <span className="text-[10px] text-slate-300">-</span>
+            <span className="text-[9px] text-slate-300">-</span>
           )}
         </div>
 
         {/* 시나리오 (핵심) */}
         <div className="flex-1 min-w-0">
           {isMasterView && (
-            <span className="text-[9px] font-bold text-yellow-700 bg-yellow-100 px-2 py-0.5 rounded mr-2">
+            <span className="text-[8px] font-bold text-yellow-700 bg-yellow-50 px-1.5 py-0.5 rounded mr-1.5">
               {getScreenNameById(tc.originScreenId)}
             </span>
           )}
-          <p className={`text-sm font-bold truncate ${isClosed ? 'text-slate-500 line-through' : 'text-slate-900'}`}>
+          <p className={`text-xs font-medium truncate ${isClosed ? 'text-slate-400 line-through' : 'text-slate-800'}`}>
             {tc.scenario}
           </p>
         </div>
 
         {/* 포지션 */}
-        <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded-lg shrink-0">
+        <span className="text-[9px] font-medium text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded shrink-0">
           {tc.position}
         </span>
 
         {/* 담당자 (빠른 변경) */}
-        <div className="shrink-0" onClick={e => e.stopPropagation()}>
+        <div className="shrink-0 w-14" onClick={e => e.stopPropagation()}>
           {isMasterView ? (
-            <span className="text-xs font-bold text-slate-600">{tc.assignee}</span>
+            <span className="text-[10px] font-medium text-slate-600">{tc.assignee}</span>
           ) : (
             <select
               value={tc.assignee}
               onChange={handleAssigneeChange}
-              className="text-xs font-bold text-slate-700 bg-transparent border border-slate-200 rounded-lg px-2 py-1 outline-none cursor-pointer hover:border-slate-400"
+              className="text-[10px] font-medium text-slate-600 bg-transparent border border-slate-200 rounded px-1 py-0.5 outline-none cursor-pointer hover:border-slate-400 w-full"
             >
               {TEAM_MEMBERS.map(m => (
                 <option key={m} value={m}>
@@ -304,21 +304,21 @@ export function ExpandableTestCaseCard({
         {/* 상태 드롭다운 */}
         <div className="shrink-0 relative group" onClick={e => e.stopPropagation()}>
           <button
-            className={`px-3 py-1.5 rounded-lg text-[10px] font-black ${statusConfig?.bgColor} ${statusConfig?.color}`}
+            className={`px-2 py-0.5 rounded text-[9px] font-bold ${statusConfig?.bgColor} ${statusConfig?.color}`}
           >
             {statusConfig?.label || tc.status}
           </button>
           {!isMasterView && (
-            <div className="absolute right-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl z-20 hidden group-hover:block min-w-[120px]">
+            <div className="absolute right-0 top-full mt-0.5 bg-white border border-slate-200 rounded-lg shadow-lg z-20 hidden group-hover:block min-w-[100px]">
               {STATUS_OPTIONS.map(opt => (
                 <button
                   key={opt.value}
                   onClick={e => handleStatusChange(e, opt.value)}
-                  className={`w-full px-3 py-2 text-left text-[10px] font-bold hover:bg-slate-50 first:rounded-t-xl last:rounded-b-xl ${
+                  className={`w-full px-2 py-1 text-left text-[9px] font-medium hover:bg-slate-50 first:rounded-t-lg last:rounded-b-lg ${
                     tc.status === opt.value ? 'bg-slate-100' : ''
                   }`}
                 >
-                  <span className={`inline-block px-2 py-0.5 rounded ${opt.bgColor} ${opt.color}`}>{opt.label}</span>
+                  <span className={`inline-block px-1.5 py-0.5 rounded ${opt.bgColor} ${opt.color}`}>{opt.label}</span>
                 </button>
               ))}
             </div>
@@ -326,11 +326,11 @@ export function ExpandableTestCaseCard({
         </div>
 
         {/* 진행도 미니 표시 */}
-        <div className="shrink-0 flex items-center gap-1">
+        <div className="shrink-0 flex items-center gap-0.5">
           {PROGRESS_STEPS.map((step, idx) => (
             <div
               key={step.value}
-              className={`w-2 h-2 rounded-full transition-all ${
+              className={`w-1.5 h-1.5 rounded-full transition-all ${
                 idx <= currentProgressIndex ? 'bg-blue-500' : 'bg-slate-200'
               }`}
               title={step.label}
@@ -339,8 +339,8 @@ export function ExpandableTestCaseCard({
         </div>
 
         {/* 댓글 수 */}
-        <div className="flex items-center gap-1 text-slate-400 shrink-0">
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="flex items-center gap-0.5 text-slate-400 shrink-0">
+          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -348,27 +348,27 @@ export function ExpandableTestCaseCard({
               d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"
             />
           </svg>
-          <span className="text-xs font-bold">{tc.comments.length}</span>
+          <span className="text-[10px] font-medium">{tc.comments.length}</span>
         </div>
       </div>
 
       {/* ===== 펼친 상태 (Expanded Content) ===== */}
       {isExpanded && !isMasterView && (
-        <div className="border-t border-slate-200">
+        <div className="border-t border-slate-100">
           {/* 닫힌 이슈 알림 배너 */}
           {isClosed && (
-            <div className="bg-slate-100 px-6 py-3 flex items-center justify-between">
+            <div className="bg-slate-50 px-3 py-2 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className={`px-2 py-1 rounded text-xs font-bold ${statusConfig?.bgColor} ${statusConfig?.color}`}>
+                <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${statusConfig?.bgColor} ${statusConfig?.color}`}>
                   {statusConfig?.label}
                 </span>
-                <span className="text-xs text-slate-500">
+                <span className="text-[10px] text-slate-500">
                   {tc.status === 'Rejected' && tc.rejectReason && `사유: ${REJECT_REASONS.find(r => r.key === tc.rejectReason)?.label}`}
                 </span>
               </div>
               <button
                 onClick={handleReopen}
-                className="px-4 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-700 transition-all"
+                className="px-2.5 py-1 bg-blue-600 text-white rounded text-[10px] font-bold hover:bg-blue-700 transition-all"
               >
                 🔄 재오픈
               </button>
@@ -376,27 +376,27 @@ export function ExpandableTestCaseCard({
           )}
 
           {/* 탭 네비게이션 */}
-          <div className="flex border-b border-slate-100 bg-slate-50">
+          <div className="flex border-b border-slate-100 bg-slate-50/50">
             <button
               onClick={() => setActivePanel('info')}
-              className={`flex-1 py-3 text-[10px] font-black uppercase tracking-widest transition-all ${
-                activePanel === 'info' ? 'bg-white text-slate-900 border-b-2 border-slate-900' : 'text-slate-500 hover:text-slate-700'
+              className={`flex-1 py-1.5 text-[9px] font-bold uppercase tracking-wide transition-all ${
+                activePanel === 'info' ? 'bg-white text-slate-800 border-b-2 border-slate-800' : 'text-slate-400 hover:text-slate-600'
               }`}
             >
               상세 정보
             </button>
             <button
               onClick={() => setActivePanel('developer')}
-              className={`flex-1 py-3 text-[10px] font-black uppercase tracking-widest transition-all ${
-                activePanel === 'developer' ? 'bg-white text-blue-600 border-b-2 border-blue-600' : 'text-slate-500 hover:text-slate-700'
+              className={`flex-1 py-1.5 text-[9px] font-bold uppercase tracking-wide transition-all ${
+                activePanel === 'developer' ? 'bg-white text-blue-600 border-b-2 border-blue-600' : 'text-slate-400 hover:text-slate-600'
               }`}
             >
               담당자 액션
             </button>
             <button
               onClick={() => setActivePanel('qa')}
-              className={`flex-1 py-3 text-[10px] font-black uppercase tracking-widest transition-all ${
-                activePanel === 'qa' ? 'bg-white text-purple-600 border-b-2 border-purple-600' : 'text-slate-500 hover:text-slate-700'
+              className={`flex-1 py-1.5 text-[9px] font-bold uppercase tracking-wide transition-all ${
+                activePanel === 'qa' ? 'bg-white text-purple-600 border-b-2 border-purple-600' : 'text-slate-400 hover:text-slate-600'
               }`}
             >
               QA 검증
@@ -404,102 +404,102 @@ export function ExpandableTestCaseCard({
           </div>
 
           {/* 패널 콘텐츠 */}
-          <div className="p-6 space-y-6 max-h-[500px] overflow-y-auto">
+          <div className="p-4 space-y-4 max-h-[400px] overflow-y-auto">
             {/* === 상세 정보 패널 === */}
             {activePanel === 'info' && (
               <>
                 {/* 기본 정보 그리드 */}
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">체크포인트</label>
+                    <label className="text-[9px] font-bold text-slate-400 uppercase block mb-0.5">체크포인트</label>
                     <input
                       value={tc.checkpoint || ''}
                       onChange={e => updateTestCase(tc.id, { checkpoint: e.target.value })}
                       placeholder="예: 로그인 버튼"
-                      className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm font-bold outline-none focus:border-purple-500"
+                      className="w-full px-2 py-1.5 rounded border border-slate-200 text-xs font-medium outline-none focus:border-purple-400"
                     />
                   </div>
                   <div>
-                    <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">보고자</label>
-                    <p className="px-3 py-2 bg-slate-50 rounded-lg text-sm font-bold text-slate-700">{tc.reporter}</p>
+                    <label className="text-[9px] font-bold text-slate-400 uppercase block mb-0.5">보고자</label>
+                    <p className="px-2 py-1.5 bg-slate-50 rounded text-xs font-medium text-slate-600">{tc.reporter}</p>
                   </div>
                 </div>
 
                 {/* 시나리오 */}
                 <div>
-                  <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">시나리오</label>
+                  <label className="text-[9px] font-bold text-slate-400 uppercase block mb-0.5">시나리오</label>
                   <textarea
                     value={tc.scenario}
                     onChange={e => updateTestCase(tc.id, { scenario: e.target.value })}
                     rows={2}
-                    className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm font-bold outline-none focus:border-slate-500 resize-none"
+                    className="w-full px-2 py-1.5 rounded border border-slate-200 text-xs font-medium outline-none focus:border-slate-400 resize-none"
                   />
                 </div>
 
                 {/* 상세 내용 */}
                 <div>
-                  <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">상세 내용</label>
+                  <label className="text-[9px] font-bold text-slate-400 uppercase block mb-0.5">상세 내용</label>
                   <textarea
                     value={tc.issueContent}
                     onChange={e => updateTestCase(tc.id, { issueContent: e.target.value })}
-                    rows={3}
+                    rows={2}
                     placeholder="이슈에 대한 상세 설명..."
-                    className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm outline-none focus:border-slate-500 resize-none"
+                    className="w-full px-2 py-1.5 rounded border border-slate-200 text-xs outline-none focus:border-slate-400 resize-none"
                   />
                 </div>
 
                 {/* 재현 방법 & 기대 결과 */}
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">재현 방법</label>
+                    <label className="text-[9px] font-bold text-slate-400 uppercase block mb-0.5">재현 방법</label>
                     <textarea
                       value={tc.reproductionSteps || ''}
                       onChange={e => updateTestCase(tc.id, { reproductionSteps: e.target.value })}
-                      rows={3}
-                      placeholder="1. 첫 번째 단계&#10;2. 두 번째 단계"
-                      className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm outline-none focus:border-slate-500 resize-none"
+                      rows={2}
+                      placeholder="1. 첫 번째 단계"
+                      className="w-full px-2 py-1.5 rounded border border-slate-200 text-xs outline-none focus:border-slate-400 resize-none"
                     />
                   </div>
                   <div>
-                    <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">기대 결과</label>
+                    <label className="text-[9px] font-bold text-slate-400 uppercase block mb-0.5">기대 결과</label>
                     <textarea
                       value={tc.expectedResult || ''}
                       onChange={e => updateTestCase(tc.id, { expectedResult: e.target.value })}
-                      rows={3}
+                      rows={2}
                       placeholder="예상되는 정상 동작..."
-                      className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm outline-none focus:border-slate-500 resize-none"
+                      className="w-full px-2 py-1.5 rounded border border-slate-200 text-xs outline-none focus:border-slate-400 resize-none"
                     />
                   </div>
                 </div>
 
                 {/* 발생 환경 */}
                 {tc.environment && (
-                  <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase block mb-2">📱 발생 환경</label>
-                    <pre className="text-xs text-slate-700 whitespace-pre-wrap font-mono leading-relaxed">{tc.environment}</pre>
+                  <div className="bg-slate-50 p-2.5 rounded border border-slate-200">
+                    <label className="text-[9px] font-bold text-slate-400 uppercase block mb-1">📱 발생 환경</label>
+                    <pre className="text-[10px] text-slate-600 whitespace-pre-wrap font-mono leading-relaxed">{tc.environment}</pre>
                   </div>
                 )}
 
                 {/* 댓글 섹션 */}
-                <div className="border-t border-slate-100 pt-4">
-                  <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3">댓글 ({tc.comments.length})</h4>
-                  <div className="space-y-2 max-h-40 overflow-y-auto mb-3">
+                <div className="border-t border-slate-100 pt-3">
+                  <h4 className="text-[9px] font-bold text-slate-500 uppercase mb-2">댓글 ({tc.comments.length})</h4>
+                  <div className="space-y-1.5 max-h-28 overflow-y-auto mb-2">
                     {tc.comments.map(comment => (
-                      <div key={comment.id} className={`p-3 rounded-lg ${comment.text.startsWith('[') ? 'bg-blue-50 border border-blue-200' : 'bg-slate-50'}`}>
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="text-xs font-black text-slate-700">{comment.userName}</span>
-                          <span className="text-[10px] text-slate-400">{comment.timestamp}</span>
+                      <div key={comment.id} className={`p-2 rounded ${comment.text.startsWith('[') ? 'bg-blue-50 border border-blue-100' : 'bg-slate-50'}`}>
+                        <div className="flex items-center gap-1.5 mb-0.5">
+                          <span className="text-[10px] font-bold text-slate-700">{comment.userName}</span>
+                          <span className="text-[9px] text-slate-400">{comment.timestamp}</span>
                         </div>
-                        <p className="text-sm text-slate-600">{comment.text}</p>
+                        <p className="text-[11px] text-slate-600">{comment.text}</p>
                       </div>
                     ))}
-                    {tc.comments.length === 0 && <p className="text-sm text-slate-400 text-center py-2">댓글이 없습니다.</p>}
+                    {tc.comments.length === 0 && <p className="text-[10px] text-slate-400 text-center py-1">댓글이 없습니다.</p>}
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-1.5">
                     <select
                       value={selectedCommentUser}
                       onChange={e => setSelectedCommentUser(e.target.value)}
-                      className="px-3 py-2 rounded-lg border border-slate-200 text-xs font-bold outline-none"
+                      className="px-2 py-1 rounded border border-slate-200 text-[10px] font-medium outline-none"
                     >
                       {TEAM_MEMBERS.map(m => (
                         <option key={m} value={m}>
@@ -511,28 +511,28 @@ export function ExpandableTestCaseCard({
                       value={newComment}
                       onChange={e => setNewComment(e.target.value)}
                       placeholder="댓글 입력..."
-                      className="flex-1 px-3 py-2 rounded-lg border border-slate-200 text-sm outline-none focus:border-slate-500"
+                      className="flex-1 px-2 py-1 rounded border border-slate-200 text-xs outline-none focus:border-slate-400"
                       onKeyDown={e => e.key === 'Enter' && handleAddComment()}
                     />
-                    <button onClick={handleAddComment} className="px-4 py-2 bg-slate-900 text-white rounded-lg text-xs font-bold hover:bg-black">
+                    <button onClick={handleAddComment} className="px-2.5 py-1 bg-slate-800 text-white rounded text-[10px] font-bold hover:bg-slate-900">
                       추가
                     </button>
                   </div>
                 </div>
 
                 {/* 하단 액션 */}
-                <div className="flex items-center justify-between pt-4 border-t border-slate-100">
+                <div className="flex items-center justify-between pt-3 border-t border-slate-100">
                   <button
                     onClick={() => {
                       if (confirm('정말 삭제하시겠습니까?')) {
                         deleteTestCase(tc.id);
                       }
                     }}
-                    className="px-4 py-2 text-red-600 text-xs font-bold hover:bg-red-50 rounded-lg"
+                    className="px-2 py-1 text-red-500 text-[10px] font-bold hover:bg-red-50 rounded"
                   >
                     삭제
                   </button>
-                  <div className="text-[10px] text-slate-400">등록일: {tc.date}</div>
+                  <div className="text-[9px] text-slate-400">등록일: {tc.date}</div>
                 </div>
               </>
             )}
@@ -541,18 +541,18 @@ export function ExpandableTestCaseCard({
             {activePanel === 'developer' && (
               <>
                 {/* 진행 상태 워크플로우 - 비순차적 선택 가능 */}
-                <div className="space-y-4">
-                  <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">
+                <div className="space-y-3">
+                  <h3 className="text-[10px] font-bold text-slate-700 uppercase flex items-center gap-1.5">
                     진행 상태
-                    {isClosed && <span className="text-[10px] font-normal text-slate-400">(재오픈 후 변경 가능)</span>}
+                    {isClosed && <span className="text-[9px] font-normal text-slate-400">(재오픈 후 변경 가능)</span>}
                   </h3>
 
                   {/* 워크플로우 시각화 */}
                   <div className="relative">
                     {/* 연결선 */}
-                    <div className="absolute top-6 left-0 right-0 h-1 bg-slate-200 rounded-full" />
+                    <div className="absolute top-4 left-0 right-0 h-0.5 bg-slate-200 rounded-full" />
                     <div
-                      className="absolute top-6 left-0 h-1 bg-blue-500 rounded-full transition-all duration-300"
+                      className="absolute top-4 left-0 h-0.5 bg-blue-500 rounded-full transition-all duration-300"
                       style={{ width: `${(currentProgressIndex / (PROGRESS_STEPS.length - 1)) * 100}%` }}
                     />
 
@@ -561,27 +561,26 @@ export function ExpandableTestCaseCard({
                       {PROGRESS_STEPS.map((step, idx) => {
                         const isActive = idx === currentProgressIndex;
                         const isPast = idx < currentProgressIndex;
-                        const isFuture = idx > currentProgressIndex;
 
                         return (
                           <button
                             key={step.value}
                             onClick={() => handleProgressStep(step.value)}
                             disabled={isClosed}
-                            className={`flex flex-col items-center gap-2 transition-all ${isClosed ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:scale-105'}`}
+                            className={`flex flex-col items-center gap-1 transition-all ${isClosed ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:scale-105'}`}
                           >
                             <div
-                              className={`w-12 h-12 rounded-full flex items-center justify-center text-lg transition-all shadow-sm ${
+                              className={`w-8 h-8 rounded-full flex items-center justify-center text-sm transition-all ${
                                 isActive
-                                  ? step.activeColor + ' ring-4 ring-blue-200 scale-110'
+                                  ? step.activeColor + ' ring-2 ring-blue-200 scale-110'
                                   : isPast
                                     ? 'bg-blue-500 text-white'
-                                    : 'bg-white border-2 border-slate-200 text-slate-400'
+                                    : 'bg-white border border-slate-200 text-slate-400'
                               }`}
                             >
                               {step.icon}
                             </div>
-                            <span className={`text-[10px] font-bold ${isActive ? 'text-blue-600' : isPast ? 'text-slate-600' : 'text-slate-400'}`}>
+                            <span className={`text-[8px] font-bold ${isActive ? 'text-blue-600' : isPast ? 'text-slate-600' : 'text-slate-400'}`}>
                               {step.label}
                             </span>
                           </button>
@@ -591,26 +590,26 @@ export function ExpandableTestCaseCard({
                   </div>
 
                   {/* 현재 상태 표시 */}
-                  <div className="bg-gradient-to-r from-blue-50 to-blue-100 p-4 rounded-xl flex items-center justify-between">
+                  <div className="bg-blue-50 p-2.5 rounded-lg flex items-center justify-between">
                     <div>
-                      <p className="text-[10px] text-blue-600 font-bold uppercase">현재 진행</p>
-                      <p className="text-lg font-black text-blue-800">{PROGRESS_STEPS[currentProgressIndex]?.label}</p>
+                      <p className="text-[9px] text-blue-600 font-bold uppercase">현재 진행</p>
+                      <p className="text-sm font-bold text-blue-800">{PROGRESS_STEPS[currentProgressIndex]?.label}</p>
                     </div>
-                    <div className="text-right">
-                      <p className="text-[10px] text-slate-500">담당: {tc.assignee}</p>
-                      <p className="text-[10px] text-slate-500">우선순위: {tc.priority}</p>
+                    <div className="text-right text-[9px] text-slate-500">
+                      <p>담당: {tc.assignee}</p>
+                      <p>우선순위: {tc.priority}</p>
                     </div>
                   </div>
                 </div>
 
                 {/* 배포 환경 표시 */}
                 {tc.deployedEnvs && tc.deployedEnvs.length > 0 && (
-                  <div className="flex items-center gap-2 p-3 bg-slate-50 rounded-xl">
-                    <span className="text-[10px] font-bold text-slate-500 uppercase">배포됨:</span>
+                  <div className="flex items-center gap-1.5 p-2 bg-slate-50 rounded-lg">
+                    <span className="text-[9px] font-bold text-slate-500 uppercase">배포됨:</span>
                     {['dev', 'staging', 'prod'].map(env => (
                       <span
                         key={env}
-                        className={`px-3 py-1 rounded-lg text-[10px] font-bold transition-all ${
+                        className={`px-2 py-0.5 rounded text-[9px] font-bold transition-all ${
                           tc.deployedEnvs?.includes(env as DeployEnv)
                             ? env === 'prod' ? 'bg-green-500 text-white' : env === 'staging' ? 'bg-yellow-500 text-white' : 'bg-blue-500 text-white'
                             : 'bg-slate-200 text-slate-400'
@@ -624,16 +623,16 @@ export function ExpandableTestCaseCard({
 
                 {/* 반려 / 보류 액션 */}
                 {!isClosed && (
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-2 gap-2">
                     <button
                       onClick={() => updateTestCase(tc.id, { status: 'Hold' })}
-                      className="p-3 rounded-xl border-2 border-orange-200 text-orange-600 font-bold text-xs hover:bg-orange-50 transition-all"
+                      className="p-2 rounded-lg border border-orange-200 text-orange-600 font-bold text-[10px] hover:bg-orange-50 transition-all"
                     >
                       ⏸️ 보류
                     </button>
                     <button
                       onClick={() => setShowRejectModal(true)}
-                      className="p-3 rounded-xl border-2 border-red-200 text-red-600 font-bold text-xs hover:bg-red-50 transition-all"
+                      className="p-2 rounded-lg border border-red-200 text-red-600 font-bold text-[10px] hover:bg-red-50 transition-all"
                     >
                       ❌ 반려
                     </button>
@@ -641,13 +640,13 @@ export function ExpandableTestCaseCard({
                 )}
 
                 {/* 이슈 요약 */}
-                <div className="bg-slate-50 p-4 rounded-xl space-y-2">
-                  <h4 className="text-[10px] font-black text-slate-500 uppercase">이슈 요약</h4>
-                  <p className="text-sm font-bold text-slate-900">{tc.scenario}</p>
+                <div className="bg-slate-50 p-2.5 rounded-lg space-y-1.5">
+                  <h4 className="text-[9px] font-bold text-slate-500 uppercase">이슈 요약</h4>
+                  <p className="text-xs font-medium text-slate-800">{tc.scenario}</p>
                   {tc.reproductionSteps && (
                     <div>
-                      <p className="text-[10px] font-bold text-slate-400">재현 방법</p>
-                      <p className="text-sm text-slate-600 whitespace-pre-wrap">{tc.reproductionSteps}</p>
+                      <p className="text-[9px] font-bold text-slate-400">재현 방법</p>
+                      <p className="text-[11px] text-slate-600 whitespace-pre-wrap">{tc.reproductionSteps}</p>
                     </div>
                   )}
                 </div>
@@ -658,43 +657,43 @@ export function ExpandableTestCaseCard({
             {activePanel === 'qa' && (
               <>
                 {/* 검증 상태 카드 */}
-                <div className="bg-gradient-to-r from-purple-600 to-purple-500 p-5 rounded-xl text-white">
-                  <div className="flex items-center justify-between mb-3">
+                <div className="bg-purple-600 p-3 rounded-lg text-white">
+                  <div className="flex items-center justify-between mb-1.5">
                     <div>
-                      <p className="text-[10px] uppercase tracking-widest opacity-80">QA 상태</p>
-                      <p className="text-lg font-black">{statusConfig?.label}</p>
+                      <p className="text-[9px] uppercase tracking-wide opacity-80">QA 상태</p>
+                      <p className="text-sm font-bold">{statusConfig?.label}</p>
                     </div>
-                    <span className="px-2 py-1 rounded-lg bg-white/20 text-[10px] font-bold">{tc.status}</span>
+                    <span className="px-1.5 py-0.5 rounded bg-white/20 text-[9px] font-bold">{tc.status}</span>
                   </div>
-                  <div className="text-sm opacity-90">
+                  <div className="text-[10px] opacity-80">
                     보고자: {tc.reporter} | {tc.date}
                   </div>
                 </div>
 
                 {/* 검증 액션 - 배포 후에만 표시 */}
                 {(tc.progress === 'DevDeployed' || tc.progress === 'ProdDeployed') && !isClosed && (
-                  <div className="space-y-3">
-                    <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest">
+                  <div className="space-y-2">
+                    <h3 className="text-[10px] font-bold text-slate-700 uppercase">
                       {tc.deployedEnvs?.includes('prod') ? 'Prod' : 'Dev'} 검증
                     </h3>
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-2 gap-2">
                       <button
                         onClick={handleVerifyPass}
-                        className="p-4 rounded-xl bg-green-100 text-green-700 font-bold text-sm hover:bg-green-200 flex flex-col items-center gap-1 transition-all hover:scale-[1.02]"
+                        className="p-2.5 rounded-lg bg-green-100 text-green-700 font-bold text-xs hover:bg-green-200 flex items-center justify-center gap-1.5 transition-all"
                       >
-                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" />
                         </svg>
-                        ✅ 통과
+                        통과
                       </button>
                       <button
                         onClick={handleVerifyFail}
-                        className="p-4 rounded-xl bg-red-100 text-red-700 font-bold text-sm hover:bg-red-200 flex flex-col items-center gap-1 transition-all hover:scale-[1.02]"
+                        className="p-2.5 rounded-lg bg-red-100 text-red-700 font-bold text-xs hover:bg-red-200 flex items-center justify-center gap-1.5 transition-all"
                       >
-                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M6 18L18 6M6 6l12 12" />
                         </svg>
-                        ❌ 실패
+                        실패
                       </button>
                     </div>
                   </div>
@@ -702,57 +701,57 @@ export function ExpandableTestCaseCard({
 
                 {/* 배포 대기 메시지 */}
                 {tc.progress !== 'DevDeployed' && tc.progress !== 'ProdDeployed' && !isClosed && (
-                  <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-xl text-center">
-                    <p className="text-sm font-bold text-yellow-700">⏳ 배포 후 검증 가능합니다</p>
-                    <p className="text-xs text-yellow-600 mt-1">현재 진행: {PROGRESS_STEPS[currentProgressIndex]?.label}</p>
+                  <div className="p-2.5 bg-yellow-50 border border-yellow-200 rounded-lg text-center">
+                    <p className="text-[11px] font-bold text-yellow-700">⏳ 배포 후 검증 가능</p>
+                    <p className="text-[10px] text-yellow-600">현재: {PROGRESS_STEPS[currentProgressIndex]?.label}</p>
                   </div>
                 )}
 
                 {/* 검증 체크리스트 */}
                 <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <h4 className="text-[10px] font-black text-slate-500 uppercase">검증 체크리스트</h4>
-                    <button onClick={handleAddVerificationItem} className="text-xs font-bold text-blue-600 hover:text-blue-800">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <h4 className="text-[9px] font-bold text-slate-500 uppercase">검증 체크리스트</h4>
+                    <button onClick={handleAddVerificationItem} className="text-[10px] font-bold text-blue-600 hover:text-blue-800">
                       + 추가
                     </button>
                   </div>
-                  <div className="space-y-2">
+                  <div className="space-y-1">
                     {(tc.verificationChecklist || []).map(item => (
-                      <div key={item.id} className="flex items-center gap-2 p-2 bg-slate-50 rounded-lg">
+                      <div key={item.id} className="flex items-center gap-1.5 p-1.5 bg-slate-50 rounded">
                         <input
                           type="checkbox"
                           checked={item.checked}
                           onChange={e => handleUpdateVerificationItem(item.id, { checked: e.target.checked })}
-                          className="w-4 h-4 rounded"
+                          className="w-3.5 h-3.5 rounded"
                         />
                         <input
                           type="text"
                           value={item.text}
                           onChange={e => handleUpdateVerificationItem(item.id, { text: e.target.value })}
                           placeholder="검증 항목..."
-                          className={`flex-1 bg-transparent text-sm outline-none ${item.checked ? 'text-slate-400 line-through' : 'text-slate-900'}`}
+                          className={`flex-1 bg-transparent text-[11px] outline-none ${item.checked ? 'text-slate-400 line-through' : 'text-slate-700'}`}
                         />
                         <button onClick={() => handleRemoveVerificationItem(item.id)} className="text-red-400 hover:text-red-600">
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
                           </svg>
                         </button>
                       </div>
                     ))}
                     {(!tc.verificationChecklist || tc.verificationChecklist.length === 0) && (
-                      <p className="text-sm text-slate-400 text-center py-2">체크리스트가 없습니다.</p>
+                      <p className="text-[10px] text-slate-400 text-center py-1">체크리스트가 없습니다.</p>
                     )}
                   </div>
                 </div>
 
                 {/* 활동 타임라인 */}
                 <div>
-                  <h4 className="text-[10px] font-black text-slate-500 uppercase mb-2">활동 내역</h4>
-                  <div className="space-y-2 max-h-40 overflow-y-auto">
+                  <h4 className="text-[9px] font-bold text-slate-500 uppercase mb-1.5">활동 내역</h4>
+                  <div className="space-y-1 max-h-28 overflow-y-auto">
                     {sortedActivityLog.slice(0, 10).map(log => (
-                      <div key={log.id} className="flex items-start gap-2 p-2 bg-slate-50 rounded-lg">
+                      <div key={log.id} className="flex items-start gap-1.5 p-1.5 bg-slate-50 rounded">
                         <div
-                          className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${
+                          className={`w-1.5 h-1.5 rounded-full mt-1 shrink-0 ${
                             log.action === 'created'
                               ? 'bg-blue-500'
                               : log.action === 'verified'
@@ -765,7 +764,7 @@ export function ExpandableTestCaseCard({
                           }`}
                         />
                         <div className="flex-1 min-w-0">
-                          <p className="text-xs font-bold text-slate-700 truncate">
+                          <p className="text-[10px] font-medium text-slate-700 truncate">
                             {log.action === 'created' && '생성'}
                             {log.action === 'status_changed' && `변경: ${log.details?.fromProgress || log.details?.fromStatus} → ${log.details?.toProgress || log.details?.toStatus}`}
                             {log.action === 'assigned' && '담당자 변경'}
@@ -774,13 +773,13 @@ export function ExpandableTestCaseCard({
                             {log.action === 'rejected' && '반려'}
                             {log.action === 'deployed' && `${log.details?.deployEnv} 배포`}
                           </p>
-                          <p className="text-[10px] text-slate-400">
+                          <p className="text-[9px] text-slate-400">
                             {log.actor} · {new Date(log.timestamp).toLocaleString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                           </p>
                         </div>
                       </div>
                     ))}
-                    {sortedActivityLog.length === 0 && <p className="text-sm text-slate-400 text-center py-2">활동 내역이 없습니다.</p>}
+                    {sortedActivityLog.length === 0 && <p className="text-[10px] text-slate-400 text-center py-1">활동 내역이 없습니다.</p>}
                   </div>
                 </div>
               </>
@@ -792,14 +791,14 @@ export function ExpandableTestCaseCard({
       {/* 반려 모달 */}
       {showRejectModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowRejectModal(false)}>
-          <div className="bg-white rounded-2xl p-6 w-96 space-y-4" onClick={e => e.stopPropagation()}>
-            <h3 className="text-lg font-black text-slate-900">이슈 반려</h3>
+          <div className="bg-white rounded-xl p-4 w-80 space-y-3" onClick={e => e.stopPropagation()}>
+            <h3 className="text-sm font-bold text-slate-900">이슈 반려</h3>
             <div>
-              <label className="text-xs font-bold text-slate-500 uppercase block mb-2">반려 사유</label>
+              <label className="text-[9px] font-bold text-slate-500 uppercase block mb-1">반려 사유</label>
               <select
                 value={rejectReason}
                 onChange={e => setRejectReason(e.target.value as RejectReason)}
-                className="w-full px-4 py-3 rounded-xl border border-slate-300 text-sm font-bold outline-none"
+                className="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs font-medium outline-none"
               >
                 {REJECT_REASONS.map(r => (
                   <option key={r.key} value={r.key}>
@@ -809,25 +808,25 @@ export function ExpandableTestCaseCard({
               </select>
             </div>
             <div>
-              <label className="text-xs font-bold text-slate-500 uppercase block mb-2">상세 설명 (선택)</label>
+              <label className="text-[9px] font-bold text-slate-500 uppercase block mb-1">상세 설명 (선택)</label>
               <textarea
                 value={rejectNote}
                 onChange={e => setRejectNote(e.target.value)}
                 placeholder="추가 설명이 필요하다면 입력하세요..."
-                rows={3}
-                className="w-full px-4 py-3 rounded-xl border border-slate-300 text-sm outline-none resize-none"
+                rows={2}
+                className="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs outline-none resize-none"
               />
             </div>
-            <div className="flex gap-3 pt-2">
+            <div className="flex gap-2 pt-1">
               <button
                 onClick={() => setShowRejectModal(false)}
-                className="flex-1 py-3 rounded-xl text-sm font-black text-slate-600 hover:bg-slate-100"
+                className="flex-1 py-1.5 rounded-lg text-xs font-bold text-slate-600 hover:bg-slate-100"
               >
                 취소
               </button>
               <button
                 onClick={handleReject}
-                className="flex-1 py-3 rounded-xl text-sm font-black bg-red-600 text-white hover:bg-red-700"
+                className="flex-1 py-1.5 rounded-lg text-xs font-bold bg-red-600 text-white hover:bg-red-700"
               >
                 반려 확정
               </button>
