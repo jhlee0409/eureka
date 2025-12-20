@@ -12,23 +12,24 @@ interface ExpandableTestCaseCardProps {
   deleteTestCase: (id: string) => void;
 }
 
-const STATUS_OPTIONS: { value: QAStatus; label: string; color: string }[] = [
-  { value: 'Reviewing', label: '검토중', color: 'bg-yellow-100 text-yellow-800' },
-  { value: 'DevError', label: 'Dev 오류', color: 'bg-red-100 text-red-800' },
-  { value: 'ProdError', label: 'Prod 오류', color: 'bg-red-100 text-red-800' },
-  { value: 'DevDone', label: 'Dev 완료', color: 'bg-green-100 text-green-800' },
-  { value: 'ProdDone', label: 'Prod 완료', color: 'bg-emerald-100 text-emerald-800' },
-  { value: 'Hold', label: '보류', color: 'bg-orange-100 text-orange-800' },
-  { value: 'Rejected', label: '반려', color: 'bg-gray-100 text-gray-800' },
-  { value: 'Duplicate', label: '중복', color: 'bg-purple-100 text-purple-800' },
+const STATUS_OPTIONS: { value: QAStatus; label: string; color: string; bgColor: string }[] = [
+  { value: 'Reviewing', label: '검토중', color: 'text-yellow-700', bgColor: 'bg-yellow-100' },
+  { value: 'DevError', label: 'Dev 오류', color: 'text-red-700', bgColor: 'bg-red-100' },
+  { value: 'ProdError', label: 'Prod 오류', color: 'text-red-700', bgColor: 'bg-red-100' },
+  { value: 'DevDone', label: 'Dev 완료', color: 'text-green-700', bgColor: 'bg-green-100' },
+  { value: 'ProdDone', label: 'Prod 완료', color: 'text-emerald-700', bgColor: 'bg-emerald-100' },
+  { value: 'Hold', label: '보류', color: 'text-orange-700', bgColor: 'bg-orange-100' },
+  { value: 'Rejected', label: '반려', color: 'text-gray-700', bgColor: 'bg-gray-100' },
+  { value: 'Duplicate', label: '중복', color: 'text-purple-700', bgColor: 'bg-purple-100' },
 ];
 
-const PROGRESS_OPTIONS: { value: QAProgress; label: string; color: string }[] = [
-  { value: 'Waiting', label: '대기', color: 'bg-slate-100 text-slate-600' },
-  { value: 'Checking', label: '확인', color: 'bg-cyan-100 text-cyan-800' },
-  { value: 'Working', label: '작업 중', color: 'bg-purple-100 text-purple-800' },
-  { value: 'DevDeployed', label: 'Dev 배포', color: 'bg-blue-100 text-blue-800' },
-  { value: 'ProdDeployed', label: 'Prod 배포', color: 'bg-emerald-100 text-emerald-800' },
+// 진행 상태 - 순서 기반 인덱스 포함
+const PROGRESS_STEPS: { value: QAProgress; label: string; icon: string; color: string; activeColor: string }[] = [
+  { value: 'Waiting', label: '대기', icon: '⏳', color: 'bg-slate-200 text-slate-500', activeColor: 'bg-slate-600 text-white' },
+  { value: 'Checking', label: '확인', icon: '👀', color: 'bg-cyan-100 text-cyan-600', activeColor: 'bg-cyan-600 text-white' },
+  { value: 'Working', label: '작업', icon: '🔧', color: 'bg-purple-100 text-purple-600', activeColor: 'bg-purple-600 text-white' },
+  { value: 'DevDeployed', label: 'Dev 배포', icon: '🚀', color: 'bg-blue-100 text-blue-600', activeColor: 'bg-blue-600 text-white' },
+  { value: 'ProdDeployed', label: 'Prod 배포', icon: '✅', color: 'bg-emerald-100 text-emerald-600', activeColor: 'bg-emerald-600 text-white' },
 ];
 
 const REJECT_REASONS: { key: RejectReason; label: string }[] = [
@@ -55,7 +56,10 @@ export function ExpandableTestCaseCard({
   const [rejectNote, setRejectNote] = useState('');
 
   const statusConfig = STATUS_OPTIONS.find(s => s.value === tc.status);
-  const progressConfig = PROGRESS_OPTIONS.find(p => p.value === tc.progress);
+  const currentProgressIndex = PROGRESS_STEPS.findIndex(p => p.value === tc.progress);
+
+  // 이슈가 닫힌 상태인지 확인 (완료, 반려, 중복)
+  const isClosed = ['DevDone', 'ProdDone', 'Rejected', 'Duplicate'].includes(tc.status);
 
   // Activity log
   const addActivityLog = (action: ActivityLog['action'], details?: ActivityLog['details']) => {
@@ -107,17 +111,74 @@ export function ExpandableTestCaseCard({
     setNewComment('');
   };
 
+  // 진행 상태 변경 (비순차적 허용)
+  const handleProgressStep = (newProgress: QAProgress) => {
+    if (isMasterView || isClosed) return;
+
+    const newIndex = PROGRESS_STEPS.findIndex(p => p.value === newProgress);
+
+    // 배포 환경 업데이트
+    let newDeployedEnvs = tc.deployedEnvs || [];
+    if (newProgress === 'DevDeployed' && !newDeployedEnvs.includes('dev')) {
+      newDeployedEnvs = [...newDeployedEnvs, 'dev'];
+    } else if (newProgress === 'ProdDeployed' && !newDeployedEnvs.includes('prod')) {
+      newDeployedEnvs = [...newDeployedEnvs, 'prod'];
+    }
+
+    // 뒤로 가는 경우 배포 환경 제거
+    if (newIndex < currentProgressIndex) {
+      if (newIndex < 3) newDeployedEnvs = newDeployedEnvs.filter(e => e !== 'dev');
+      if (newIndex < 4) newDeployedEnvs = newDeployedEnvs.filter(e => e !== 'prod');
+    }
+
+    addActivityLog('status_changed', { fromProgress: tc.progress, toProgress: newProgress });
+    updateTestCase(tc.id, {
+      progress: newProgress,
+      deployedEnvs: newDeployedEnvs.length > 0 ? newDeployedEnvs : undefined,
+    });
+  };
+
+  // 반려 처리
   const handleReject = () => {
     updateTestCase(tc.id, {
       status: 'Rejected',
       rejectReason,
-      issueContent: tc.issueContent + `\n\n[반려 사유] ${REJECT_REASONS.find(r => r.key === rejectReason)?.label}: ${rejectNote}`,
     });
     addActivityLog('rejected', { rejectReason });
+
+    // 반려 코멘트 자동 추가
+    const rejectComment: Comment = {
+      id: crypto.randomUUID(),
+      userName: selectedCommentUser,
+      text: `[반려] ${REJECT_REASONS.find(r => r.key === rejectReason)?.label}${rejectNote ? `: ${rejectNote}` : ''}`,
+      timestamp: new Date().toLocaleString('ko-KR', { hour12: false }),
+    };
+    updateTestCase(tc.id, { comments: [...tc.comments, rejectComment] });
+
     setShowRejectModal(false);
     setRejectNote('');
   };
 
+  // 재오픈 처리
+  const handleReopen = () => {
+    addActivityLog('status_changed', { fromStatus: tc.status, toStatus: 'Reviewing' });
+    updateTestCase(tc.id, {
+      status: 'Reviewing',
+      progress: 'Waiting',
+      rejectReason: undefined,
+    });
+
+    // 재오픈 코멘트 자동 추가
+    const reopenComment: Comment = {
+      id: crypto.randomUUID(),
+      userName: selectedCommentUser,
+      text: '[재오픈] 이슈가 다시 열렸습니다.',
+      timestamp: new Date().toLocaleString('ko-KR', { hour12: false }),
+    };
+    updateTestCase(tc.id, { comments: [...tc.comments, reopenComment] });
+  };
+
+  // QA 검증
   const handleVerifyPass = () => {
     const env = tc.deployedEnvs?.includes('prod') ? 'Prod' : 'Dev';
     const newStatus = env === 'Prod' ? 'ProdDone' : 'DevDone';
@@ -130,18 +191,6 @@ export function ExpandableTestCaseCard({
     const newStatus = env === 'Prod' ? 'ProdError' : 'DevError';
     updateTestCase(tc.id, { status: newStatus, progress: 'Waiting' });
     addActivityLog('verified', { toStatus: newStatus, deployEnv: env.toLowerCase() as DeployEnv });
-  };
-
-  const handleDeploy = (env: 'dev' | 'prod') => {
-    const envs = tc.deployedEnvs || [];
-    if (!envs.includes(env)) {
-      const newProgress = env === 'prod' ? 'ProdDeployed' : 'DevDeployed';
-      updateTestCase(tc.id, {
-        progress: newProgress,
-        deployedEnvs: [...envs, env],
-      });
-      addActivityLog('deployed', { deployEnv: env });
-    }
   };
 
   const handleAddVerificationItem = () => {
@@ -175,13 +224,13 @@ export function ExpandableTestCaseCard({
   return (
     <div
       className={`rounded-2xl border-2 transition-all bg-white overflow-hidden ${
-        isExpanded ? 'border-slate-900 shadow-xl' : 'border-slate-200 hover:border-slate-300'
+        isExpanded ? 'border-slate-900 shadow-xl' : isClosed ? 'border-slate-100 bg-slate-50' : 'border-slate-200 hover:border-slate-300'
       }`}
     >
       {/* ===== 접힌 상태 (Collapsed Header) ===== */}
       <div
         onClick={() => !isMasterView && setIsExpanded(!isExpanded)}
-        className={`p-5 flex items-center gap-4 ${!isMasterView ? 'cursor-pointer' : ''}`}
+        className={`p-5 flex items-center gap-4 ${!isMasterView ? 'cursor-pointer' : ''} ${isClosed ? 'opacity-70' : ''}`}
       >
         {/* 확장 아이콘 */}
         {!isMasterView && (
@@ -223,7 +272,9 @@ export function ExpandableTestCaseCard({
               {getScreenNameById(tc.originScreenId)}
             </span>
           )}
-          <p className="text-sm font-bold text-slate-900 truncate">{tc.scenario}</p>
+          <p className={`text-sm font-bold truncate ${isClosed ? 'text-slate-500 line-through' : 'text-slate-900'}`}>
+            {tc.scenario}
+          </p>
         </div>
 
         {/* 포지션 */}
@@ -253,7 +304,7 @@ export function ExpandableTestCaseCard({
         {/* 상태 드롭다운 */}
         <div className="shrink-0 relative group" onClick={e => e.stopPropagation()}>
           <button
-            className={`px-3 py-1.5 rounded-lg text-[10px] font-black ${statusConfig?.color || 'bg-slate-100 text-slate-600'}`}
+            className={`px-3 py-1.5 rounded-lg text-[10px] font-black ${statusConfig?.bgColor} ${statusConfig?.color}`}
           >
             {statusConfig?.label || tc.status}
           </button>
@@ -267,35 +318,24 @@ export function ExpandableTestCaseCard({
                     tc.status === opt.value ? 'bg-slate-100' : ''
                   }`}
                 >
-                  <span className={`inline-block px-2 py-0.5 rounded ${opt.color}`}>{opt.label}</span>
+                  <span className={`inline-block px-2 py-0.5 rounded ${opt.bgColor} ${opt.color}`}>{opt.label}</span>
                 </button>
               ))}
             </div>
           )}
         </div>
 
-        {/* 진행도 드롭다운 */}
-        <div className="shrink-0 relative group" onClick={e => e.stopPropagation()}>
-          <button
-            className={`px-3 py-1.5 rounded-lg text-[10px] font-black ${progressConfig?.color || 'bg-slate-100 text-slate-600'}`}
-          >
-            {progressConfig?.label || tc.progress}
-          </button>
-          {!isMasterView && (
-            <div className="absolute right-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl z-20 hidden group-hover:block min-w-[120px]">
-              {PROGRESS_OPTIONS.map(opt => (
-                <button
-                  key={opt.value}
-                  onClick={e => handleProgressChange(e, opt.value)}
-                  className={`w-full px-3 py-2 text-left text-[10px] font-bold hover:bg-slate-50 first:rounded-t-xl last:rounded-b-xl ${
-                    tc.progress === opt.value ? 'bg-slate-100' : ''
-                  }`}
-                >
-                  <span className={`inline-block px-2 py-0.5 rounded ${opt.color}`}>{opt.label}</span>
-                </button>
-              ))}
-            </div>
-          )}
+        {/* 진행도 미니 표시 */}
+        <div className="shrink-0 flex items-center gap-1">
+          {PROGRESS_STEPS.map((step, idx) => (
+            <div
+              key={step.value}
+              className={`w-2 h-2 rounded-full transition-all ${
+                idx <= currentProgressIndex ? 'bg-blue-500' : 'bg-slate-200'
+              }`}
+              title={step.label}
+            />
+          ))}
         </div>
 
         {/* 댓글 수 */}
@@ -315,6 +355,26 @@ export function ExpandableTestCaseCard({
       {/* ===== 펼친 상태 (Expanded Content) ===== */}
       {isExpanded && !isMasterView && (
         <div className="border-t border-slate-200">
+          {/* 닫힌 이슈 알림 배너 */}
+          {isClosed && (
+            <div className="bg-slate-100 px-6 py-3 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className={`px-2 py-1 rounded text-xs font-bold ${statusConfig?.bgColor} ${statusConfig?.color}`}>
+                  {statusConfig?.label}
+                </span>
+                <span className="text-xs text-slate-500">
+                  {tc.status === 'Rejected' && tc.rejectReason && `사유: ${REJECT_REASONS.find(r => r.key === tc.rejectReason)?.label}`}
+                </span>
+              </div>
+              <button
+                onClick={handleReopen}
+                className="px-4 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-700 transition-all"
+              >
+                🔄 재오픈
+              </button>
+            </div>
+          )}
+
           {/* 탭 네비게이션 */}
           <div className="flex border-b border-slate-100 bg-slate-50">
             <button
@@ -425,7 +485,7 @@ export function ExpandableTestCaseCard({
                   <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3">댓글 ({tc.comments.length})</h4>
                   <div className="space-y-2 max-h-40 overflow-y-auto mb-3">
                     {tc.comments.map(comment => (
-                      <div key={comment.id} className="bg-slate-50 p-3 rounded-lg">
+                      <div key={comment.id} className={`p-3 rounded-lg ${comment.text.startsWith('[') ? 'bg-blue-50 border border-blue-200' : 'bg-slate-50'}`}>
                         <div className="flex items-center gap-2 mb-1">
                           <span className="text-xs font-black text-slate-700">{comment.userName}</span>
                           <span className="text-[10px] text-slate-400">{comment.timestamp}</span>
@@ -480,77 +540,80 @@ export function ExpandableTestCaseCard({
             {/* === 담당자 액션 패널 === */}
             {activePanel === 'developer' && (
               <>
-                {/* 현재 상태 카드 */}
-                <div className="bg-gradient-to-r from-blue-600 to-blue-500 p-5 rounded-xl text-white">
-                  <div className="flex items-center justify-between mb-3">
-                    <div>
-                      <p className="text-[10px] uppercase tracking-widest opacity-80">진행 상태</p>
-                      <p className="text-lg font-black">{progressConfig?.label}</p>
-                    </div>
-                    <div
-                      className={`w-3 h-3 rounded-full ${
-                        tc.progress === 'Waiting'
-                          ? 'bg-yellow-400'
-                          : tc.progress === 'Working'
-                            ? 'bg-orange-400 animate-pulse'
-                            : 'bg-green-400'
-                      }`}
-                    />
-                  </div>
-                  <div className="text-sm opacity-90">
-                    담당: {tc.assignee} | 우선순위: {tc.priority}
-                  </div>
-                </div>
+                {/* 진행 상태 워크플로우 - 비순차적 선택 가능 */}
+                <div className="space-y-4">
+                  <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">
+                    진행 상태
+                    {isClosed && <span className="text-[10px] font-normal text-slate-400">(재오픈 후 변경 가능)</span>}
+                  </h3>
 
-                {/* 빠른 액션 버튼 */}
-                <div className="grid grid-cols-4 gap-2">
-                  <button
-                    onClick={() => updateTestCase(tc.id, { progress: 'Checking' })}
-                    disabled={tc.progress !== 'Waiting'}
-                    className={`p-3 rounded-xl text-xs font-bold transition-all ${
-                      tc.progress === 'Waiting' ? 'bg-blue-100 text-blue-700 hover:bg-blue-200' : 'bg-slate-100 text-slate-400 cursor-not-allowed'
-                    }`}
-                  >
-                    확인
-                  </button>
-                  <button
-                    onClick={() => updateTestCase(tc.id, { progress: 'Working' })}
-                    disabled={tc.progress !== 'Checking'}
-                    className={`p-3 rounded-xl text-xs font-bold transition-all ${
-                      tc.progress === 'Checking' ? 'bg-orange-100 text-orange-700 hover:bg-orange-200' : 'bg-slate-100 text-slate-400 cursor-not-allowed'
-                    }`}
-                  >
-                    작업
-                  </button>
-                  <button
-                    onClick={() => handleDeploy('dev')}
-                    disabled={tc.progress !== 'Working'}
-                    className={`p-3 rounded-xl text-xs font-bold transition-all ${
-                      tc.progress === 'Working' ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-slate-100 text-slate-400 cursor-not-allowed'
-                    }`}
-                  >
-                    Dev
-                  </button>
-                  <button
-                    onClick={() => handleDeploy('prod')}
-                    disabled={tc.progress !== 'DevDeployed'}
-                    className={`p-3 rounded-xl text-xs font-bold transition-all ${
-                      tc.progress === 'DevDeployed' ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200' : 'bg-slate-100 text-slate-400 cursor-not-allowed'
-                    }`}
-                  >
-                    Prod
-                  </button>
+                  {/* 워크플로우 시각화 */}
+                  <div className="relative">
+                    {/* 연결선 */}
+                    <div className="absolute top-6 left-0 right-0 h-1 bg-slate-200 rounded-full" />
+                    <div
+                      className="absolute top-6 left-0 h-1 bg-blue-500 rounded-full transition-all duration-300"
+                      style={{ width: `${(currentProgressIndex / (PROGRESS_STEPS.length - 1)) * 100}%` }}
+                    />
+
+                    {/* 단계 버튼들 */}
+                    <div className="relative flex justify-between">
+                      {PROGRESS_STEPS.map((step, idx) => {
+                        const isActive = idx === currentProgressIndex;
+                        const isPast = idx < currentProgressIndex;
+                        const isFuture = idx > currentProgressIndex;
+
+                        return (
+                          <button
+                            key={step.value}
+                            onClick={() => handleProgressStep(step.value)}
+                            disabled={isClosed}
+                            className={`flex flex-col items-center gap-2 transition-all ${isClosed ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:scale-105'}`}
+                          >
+                            <div
+                              className={`w-12 h-12 rounded-full flex items-center justify-center text-lg transition-all shadow-sm ${
+                                isActive
+                                  ? step.activeColor + ' ring-4 ring-blue-200 scale-110'
+                                  : isPast
+                                    ? 'bg-blue-500 text-white'
+                                    : 'bg-white border-2 border-slate-200 text-slate-400'
+                              }`}
+                            >
+                              {step.icon}
+                            </div>
+                            <span className={`text-[10px] font-bold ${isActive ? 'text-blue-600' : isPast ? 'text-slate-600' : 'text-slate-400'}`}>
+                              {step.label}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* 현재 상태 표시 */}
+                  <div className="bg-gradient-to-r from-blue-50 to-blue-100 p-4 rounded-xl flex items-center justify-between">
+                    <div>
+                      <p className="text-[10px] text-blue-600 font-bold uppercase">현재 진행</p>
+                      <p className="text-lg font-black text-blue-800">{PROGRESS_STEPS[currentProgressIndex]?.label}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-[10px] text-slate-500">담당: {tc.assignee}</p>
+                      <p className="text-[10px] text-slate-500">우선순위: {tc.priority}</p>
+                    </div>
+                  </div>
                 </div>
 
                 {/* 배포 환경 표시 */}
                 {tc.deployedEnvs && tc.deployedEnvs.length > 0 && (
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase">배포됨:</span>
-                    {tc.deployedEnvs.map(env => (
+                  <div className="flex items-center gap-2 p-3 bg-slate-50 rounded-xl">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase">배포됨:</span>
+                    {['dev', 'staging', 'prod'].map(env => (
                       <span
                         key={env}
-                        className={`px-2 py-1 rounded text-[10px] font-bold text-white ${
-                          env === 'prod' ? 'bg-green-500' : env === 'staging' ? 'bg-yellow-500' : 'bg-blue-500'
+                        className={`px-3 py-1 rounded-lg text-[10px] font-bold transition-all ${
+                          tc.deployedEnvs?.includes(env as DeployEnv)
+                            ? env === 'prod' ? 'bg-green-500 text-white' : env === 'staging' ? 'bg-yellow-500 text-white' : 'bg-blue-500 text-white'
+                            : 'bg-slate-200 text-slate-400'
                         }`}
                       >
                         {env.toUpperCase()}
@@ -559,14 +622,23 @@ export function ExpandableTestCaseCard({
                   </div>
                 )}
 
-                {/* 반려 버튼 */}
-                <button
-                  onClick={() => setShowRejectModal(true)}
-                  disabled={tc.status === 'Rejected' || tc.status === 'DevDone' || tc.status === 'ProdDone'}
-                  className="w-full p-3 rounded-xl border-2 border-red-200 text-red-600 font-bold text-xs hover:bg-red-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  이슈 반려하기
-                </button>
+                {/* 반려 / 보류 액션 */}
+                {!isClosed && (
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      onClick={() => updateTestCase(tc.id, { status: 'Hold' })}
+                      className="p-3 rounded-xl border-2 border-orange-200 text-orange-600 font-bold text-xs hover:bg-orange-50 transition-all"
+                    >
+                      ⏸️ 보류
+                    </button>
+                    <button
+                      onClick={() => setShowRejectModal(true)}
+                      className="p-3 rounded-xl border-2 border-red-200 text-red-600 font-bold text-xs hover:bg-red-50 transition-all"
+                    >
+                      ❌ 반려
+                    </button>
+                  </div>
+                )}
 
                 {/* 이슈 요약 */}
                 <div className="bg-slate-50 p-4 rounded-xl space-y-2">
@@ -599,27 +671,40 @@ export function ExpandableTestCaseCard({
                   </div>
                 </div>
 
-                {/* 검증 액션 */}
-                {(tc.progress === 'DevDeployed' || tc.progress === 'ProdDeployed') && (
-                  <div className="grid grid-cols-2 gap-3">
-                    <button
-                      onClick={handleVerifyPass}
-                      className="p-4 rounded-xl bg-green-100 text-green-700 font-bold text-sm hover:bg-green-200 flex flex-col items-center gap-1"
-                    >
-                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" />
-                      </svg>
-                      통과
-                    </button>
-                    <button
-                      onClick={handleVerifyFail}
-                      className="p-4 rounded-xl bg-red-100 text-red-700 font-bold text-sm hover:bg-red-200 flex flex-col items-center gap-1"
-                    >
-                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                      실패
-                    </button>
+                {/* 검증 액션 - 배포 후에만 표시 */}
+                {(tc.progress === 'DevDeployed' || tc.progress === 'ProdDeployed') && !isClosed && (
+                  <div className="space-y-3">
+                    <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest">
+                      {tc.deployedEnvs?.includes('prod') ? 'Prod' : 'Dev'} 검증
+                    </h3>
+                    <div className="grid grid-cols-2 gap-3">
+                      <button
+                        onClick={handleVerifyPass}
+                        className="p-4 rounded-xl bg-green-100 text-green-700 font-bold text-sm hover:bg-green-200 flex flex-col items-center gap-1 transition-all hover:scale-[1.02]"
+                      >
+                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" />
+                        </svg>
+                        ✅ 통과
+                      </button>
+                      <button
+                        onClick={handleVerifyFail}
+                        className="p-4 rounded-xl bg-red-100 text-red-700 font-bold text-sm hover:bg-red-200 flex flex-col items-center gap-1 transition-all hover:scale-[1.02]"
+                      >
+                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                        ❌ 실패
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* 배포 대기 메시지 */}
+                {tc.progress !== 'DevDeployed' && tc.progress !== 'ProdDeployed' && !isClosed && (
+                  <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-xl text-center">
+                    <p className="text-sm font-bold text-yellow-700">⏳ 배포 후 검증 가능합니다</p>
+                    <p className="text-xs text-yellow-600 mt-1">현재 진행: {PROGRESS_STEPS[currentProgressIndex]?.label}</p>
                   </div>
                 )}
 
@@ -664,7 +749,7 @@ export function ExpandableTestCaseCard({
                 <div>
                   <h4 className="text-[10px] font-black text-slate-500 uppercase mb-2">활동 내역</h4>
                   <div className="space-y-2 max-h-40 overflow-y-auto">
-                    {sortedActivityLog.slice(0, 8).map(log => (
+                    {sortedActivityLog.slice(0, 10).map(log => (
                       <div key={log.id} className="flex items-start gap-2 p-2 bg-slate-50 rounded-lg">
                         <div
                           className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${
@@ -683,6 +768,7 @@ export function ExpandableTestCaseCard({
                           <p className="text-xs font-bold text-slate-700 truncate">
                             {log.action === 'created' && '생성'}
                             {log.action === 'status_changed' && `변경: ${log.details?.fromProgress || log.details?.fromStatus} → ${log.details?.toProgress || log.details?.toStatus}`}
+                            {log.action === 'assigned' && '담당자 변경'}
                             {log.action === 'commented' && '댓글'}
                             {log.action === 'verified' && `검증 ${log.details?.toStatus?.includes('Done') ? '✓' : '✗'}`}
                             {log.action === 'rejected' && '반려'}
@@ -706,7 +792,7 @@ export function ExpandableTestCaseCard({
       {/* 반려 모달 */}
       {showRejectModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowRejectModal(false)}>
-          <div className="bg-white rounded-2xl p-6 w-80 space-y-4" onClick={e => e.stopPropagation()}>
+          <div className="bg-white rounded-2xl p-6 w-96 space-y-4" onClick={e => e.stopPropagation()}>
             <h3 className="text-lg font-black text-slate-900">이슈 반려</h3>
             <div>
               <label className="text-xs font-bold text-slate-500 uppercase block mb-2">반려 사유</label>
@@ -723,21 +809,27 @@ export function ExpandableTestCaseCard({
               </select>
             </div>
             <div>
-              <label className="text-xs font-bold text-slate-500 uppercase block mb-2">상세 설명</label>
+              <label className="text-xs font-bold text-slate-500 uppercase block mb-2">상세 설명 (선택)</label>
               <textarea
                 value={rejectNote}
                 onChange={e => setRejectNote(e.target.value)}
-                placeholder="반려 사유 상세 설명..."
+                placeholder="추가 설명이 필요하다면 입력하세요..."
                 rows={3}
                 className="w-full px-4 py-3 rounded-xl border border-slate-300 text-sm outline-none resize-none"
               />
             </div>
-            <div className="flex gap-3">
-              <button onClick={() => setShowRejectModal(false)} className="flex-1 py-3 rounded-xl text-sm font-black text-slate-600 hover:bg-slate-100">
+            <div className="flex gap-3 pt-2">
+              <button
+                onClick={() => setShowRejectModal(false)}
+                className="flex-1 py-3 rounded-xl text-sm font-black text-slate-600 hover:bg-slate-100"
+              >
                 취소
               </button>
-              <button onClick={handleReject} className="flex-1 py-3 rounded-xl text-sm font-black bg-red-600 text-white hover:bg-red-700">
-                반려
+              <button
+                onClick={handleReject}
+                className="flex-1 py-3 rounded-xl text-sm font-black bg-red-600 text-white hover:bg-red-700"
+              >
+                반려 확정
               </button>
             </div>
           </div>
