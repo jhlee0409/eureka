@@ -412,6 +412,14 @@ export function ExpandableTestCaseCard({
                   </div>
                 </div>
 
+                {/* 발생 환경 */}
+                {tc.environment && (
+                  <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase block mb-2">📱 발생 환경</label>
+                    <pre className="text-xs text-slate-700 whitespace-pre-wrap font-mono leading-relaxed">{tc.environment}</pre>
+                  </div>
+                )}
+
                 {/* 댓글 섹션 */}
                 <div className="border-t border-slate-100 pt-4">
                   <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3">댓글 ({tc.comments.length})</h4>

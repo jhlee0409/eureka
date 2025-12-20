@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { TestCase, QAPriority, QAPosition, IssueType, WbsTask } from '../../../types';
 import { TEAM_MEMBERS } from '../hooks/useScreenData';
+import { collectDeviceInfo, formatDeviceInfoString, AUTO_COLLECTIBLE_ITEMS, DeviceInfo } from '../../../utils/deviceInfo';
 
 interface TcAddModalProps {
   isOpen: boolean;
@@ -52,6 +53,31 @@ export function TcAddModal({ isOpen, onClose, onAdd, wbsTasks, originScreenId }:
   });
 
   const [step, setStep] = useState(1);
+  const [deviceInfo, setDeviceInfo] = useState<DeviceInfo | null>(null);
+  const [showDeviceDetails, setShowDeviceDetails] = useState(false);
+
+  // 모달 열릴 때 디바이스 정보 자동 수집
+  useEffect(() => {
+    if (isOpen && !deviceInfo) {
+      const info = collectDeviceInfo();
+      setDeviceInfo(info);
+      // 환경 정보 자동 설정
+      setFormData(prev => ({
+        ...prev,
+        environment: formatDeviceInfoString(info),
+      }));
+    }
+  }, [isOpen, deviceInfo]);
+
+  // 디바이스 정보 새로고침
+  const refreshDeviceInfo = () => {
+    const info = collectDeviceInfo();
+    setDeviceInfo(info);
+    setFormData(prev => ({
+      ...prev,
+      environment: formatDeviceInfoString(info),
+    }));
+  };
 
   const handleSubmit = () => {
     if (!formData.scenario.trim()) return;
@@ -106,6 +132,8 @@ export function TcAddModal({ isOpen, onClose, onAdd, wbsTasks, originScreenId }:
       referenceLink: '',
     });
     setStep(1);
+    setDeviceInfo(null);
+    setShowDeviceDetails(false);
   };
 
   if (!isOpen) return null;
@@ -278,16 +306,84 @@ export function TcAddModal({ isOpen, onClose, onAdd, wbsTasks, originScreenId }:
 
           {step === 3 && (
             <>
-              {/* Environment */}
-              <div>
-                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">발생 환경</label>
-                <input
-                  type="text"
-                  value={formData.environment}
-                  onChange={(e) => setFormData({ ...formData, environment: e.target.value })}
-                  placeholder="Chrome 120, macOS, Dev 서버"
-                  className="w-full px-4 py-3 rounded-xl border border-slate-300 text-sm font-bold outline-none focus:border-slate-900 focus:ring-2 focus:ring-slate-100"
-                />
+              {/* Environment - Auto Collected */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase">발생 환경 (자동 수집됨)</label>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowDeviceDetails(!showDeviceDetails)}
+                      className="text-[10px] font-bold text-blue-600 hover:text-blue-800"
+                    >
+                      {showDeviceDetails ? '간략히' : '상세보기'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={refreshDeviceInfo}
+                      className="text-[10px] font-bold text-slate-500 hover:text-slate-700 flex items-center gap-1"
+                    >
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                      </svg>
+                      새로고침
+                    </button>
+                  </div>
+                </div>
+
+                {/* 자동 수집된 정보 표시 */}
+                {deviceInfo && (
+                  <div className="bg-gradient-to-r from-slate-50 to-slate-100 rounded-xl border border-slate-200 overflow-hidden">
+                    {/* 간략 요약 */}
+                    <div className="p-4 flex items-center gap-3">
+                      <div className="text-2xl">
+                        {deviceInfo.deviceType === 'mobile' ? '📱' : deviceInfo.deviceType === 'tablet' ? '📱' : '🖥️'}
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm font-bold text-slate-900">
+                          {deviceInfo.browser} {deviceInfo.browserVersion}
+                        </p>
+                        <p className="text-xs text-slate-500">
+                          {deviceInfo.os} · {deviceInfo.viewportSize}
+                        </p>
+                      </div>
+                      <div className={`w-2 h-2 rounded-full ${deviceInfo.online ? 'bg-green-500' : 'bg-red-500'}`} title={deviceInfo.online ? '온라인' : '오프라인'} />
+                    </div>
+
+                    {/* 상세 정보 */}
+                    {showDeviceDetails && (
+                      <div className="border-t border-slate-200 p-4 grid grid-cols-2 gap-3">
+                        {AUTO_COLLECTIBLE_ITEMS.map(item => {
+                          const value = deviceInfo[item.key as keyof DeviceInfo];
+                          if (value === undefined || value === '') return null;
+                          return (
+                            <div key={item.key} className="flex items-start gap-2">
+                              <span className="text-sm">{item.icon}</span>
+                              <div>
+                                <p className="text-[10px] font-bold text-slate-400 uppercase">{item.label}</p>
+                                <p className="text-xs font-bold text-slate-700 break-all">
+                                  {typeof value === 'boolean' ? (value ? '지원' : '미지원') : String(value)}
+                                </p>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* 수동 입력/수정 */}
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">추가 환경 정보 (수동 입력)</label>
+                  <textarea
+                    value={formData.environment}
+                    onChange={(e) => setFormData({ ...formData, environment: e.target.value })}
+                    placeholder="추가 환경 정보가 있다면 입력하세요..."
+                    rows={3}
+                    className="w-full px-4 py-3 rounded-xl border border-slate-300 text-sm outline-none focus:border-slate-900 focus:ring-2 focus:ring-slate-100 resize-none font-mono text-xs"
+                  />
+                </div>
               </div>
 
               {/* Assignee & Reporter */}
