@@ -46,7 +46,7 @@ export function SpecPanel({
 
       {/* Collapsible Content */}
       {isOpen && (
-        <div className="px-4 pb-4">
+        <div className="px-4 pb-4 max-h-[50vh] overflow-y-auto custom-scrollbar">
           {isMasterView ? (
             <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
               <p className="text-xs text-slate-600 leading-relaxed">
@@ -59,65 +59,59 @@ export function SpecPanel({
               </div>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              {/* Screen Information */}
-              <div className="bg-blue-50 p-3 rounded-lg border border-blue-100">
-                <div className="flex items-center gap-1.5 mb-2">
-                  <span className="text-blue-600">ℹ️</span>
-                  <h4 className="text-[10px] font-bold text-blue-700 uppercase tracking-wide">
-                    Screen Information
-                  </h4>
+            <div className="space-y-3">
+              {/* Metadata - Compact Row */}
+              <div className="flex items-center gap-4 text-[11px] text-slate-600 bg-slate-50 px-3 py-2 rounded-lg">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-slate-400">화면:</span>
+                  <span className="font-medium text-slate-900">{activeScreen?.name || '-'}</span>
                 </div>
-                {activeScreen?.screenInformation ? (
-                  <p className="text-[11px] text-slate-700 leading-relaxed whitespace-pre-wrap line-clamp-4">
-                    {activeScreen.screenInformation}
-                  </p>
-                ) : (
-                  <p className="text-[11px] text-slate-400 italic">정보 없음</p>
+                <span className="text-slate-300">•</span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-slate-400">Base ID:</span>
+                  <span className="font-medium text-slate-900">{activeScreen?.baseId || '-'}</span>
+                </div>
+                {activeScreen?.suffix && (
+                  <>
+                    <span className="text-slate-300">•</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-slate-400">Suffix:</span>
+                      <span className="font-medium text-slate-900">{activeScreen.suffix}</span>
+                    </div>
+                  </>
                 )}
               </div>
 
-              {/* Description */}
-              <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
+              {/* Screen Information - Full Content */}
+              {activeScreen?.screenInformation && (
+                <div className="bg-blue-50 p-3 rounded-lg border border-blue-100">
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <span className="text-sm">ℹ️</span>
+                    <h4 className="text-[10px] font-bold text-blue-700 uppercase tracking-wide">
+                      Screen Information
+                    </h4>
+                  </div>
+                  <p className="text-[12px] text-slate-700 leading-relaxed whitespace-pre-wrap">
+                    {activeScreen.screenInformation}
+                  </p>
+                </div>
+              )}
+
+              {/* Description - Full Content */}
+              <div className="bg-white p-3 rounded-lg border border-slate-200">
                 <div className="flex items-center gap-1.5 mb-2">
-                  <span>📄</span>
+                  <span className="text-sm">📄</span>
                   <h4 className="text-[10px] font-bold text-slate-600 uppercase tracking-wide">
                     Description
                   </h4>
                 </div>
                 {activeScreen?.description ? (
-                  <p className="text-[11px] text-slate-700 leading-relaxed whitespace-pre-wrap line-clamp-4">
+                  <p className="text-[12px] text-slate-700 leading-relaxed whitespace-pre-wrap">
                     {activeScreen.description}
                   </p>
                 ) : (
-                  <p className="text-[11px] text-slate-400 italic">설명 없음</p>
+                  <p className="text-[12px] text-slate-400 italic">설명이 없습니다.</p>
                 )}
-              </div>
-
-              {/* Screen Metadata */}
-              <div className="bg-white p-3 rounded-lg border border-slate-200">
-                <div className="flex items-center gap-1.5 mb-2">
-                  <span>🏷️</span>
-                  <h4 className="text-[10px] font-bold text-slate-600 uppercase tracking-wide">
-                    Metadata
-                  </h4>
-                </div>
-                <div className="space-y-1.5 text-[10px]">
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">화면 이름</span>
-                    <span className="text-slate-900 font-medium">{activeScreen?.name || '-'}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">Base ID</span>
-                    <span className="text-slate-900 font-medium">{activeScreen?.baseId || '-'}</span>
-                  </div>
-                  {activeScreen?.suffix && (
-                    <div className="flex justify-between">
-                      <span className="text-slate-500">Suffix</span>
-                      <span className="text-slate-900 font-medium">{activeScreen.suffix}</span>
-                    </div>
-                  )}
-                </div>
               </div>
             </div>
           )}
