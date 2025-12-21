@@ -17,6 +17,7 @@ interface TestCaseInspectorProps {
   onClose: () => void;
   currentUser?: string;
   userRole?: 'developer' | 'qa';
+  wbsTasks?: { id: string; name: string }[];
 }
 
 const REJECT_REASONS: { key: RejectReason; label: string }[] = [
@@ -39,7 +40,8 @@ export function TestCaseInspector({
   deleteTestCase,
   onClose,
   currentUser = TEAM_MEMBERS[0],
-  userRole = 'developer'
+  userRole = 'developer',
+  wbsTasks = [],
 }: TestCaseInspectorProps) {
   const [newComment, setNewComment] = useState('');
   const [selectedCommentUser, setSelectedCommentUser] = useState(currentUser);
@@ -335,6 +337,23 @@ export function TestCaseInspector({
             </a>
           )}
         </div>
+
+        {/* 관련 WBS */}
+        {testCase.relatedWbsId && (
+          <div className="space-y-4">
+            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block flex items-center gap-2">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+              </svg>
+              관련 WBS
+            </label>
+            <div className="bg-blue-50 px-6 py-4 rounded-2xl border-2 border-blue-200">
+              <p className="text-sm font-black text-blue-800">
+                {wbsTasks.find(w => w.id === testCase.relatedWbsId)?.name || testCase.relatedWbsId}
+              </p>
+            </div>
+          </div>
+        )}
 
         <div className="pt-10 border-t border-slate-200 space-y-8">
           <h4 className="text-[11px] font-black text-slate-900 uppercase tracking-widest flex items-center gap-3">

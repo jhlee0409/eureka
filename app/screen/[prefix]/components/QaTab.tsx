@@ -75,6 +75,7 @@ export function QaTab({
             getScreenNameById={getScreenNameById}
             updateTestCase={updateTestCase}
             deleteTestCase={deleteTestCase}
+            wbsTasks={wbsTasks}
           />
         ))}
         {testCases.length === 0 && (

@@ -13,6 +13,7 @@ interface ExpandableTestCaseCardProps {
   getScreenNameById: (figmaId: string | undefined) => string;
   updateTestCase: (id: string, updates: Partial<TestCase>) => void;
   deleteTestCase: (id: string) => void;
+  wbsTasks?: { id: string; name: string }[];
 }
 
 const STATUS_OPTIONS: { value: QAStatus; label: string; color: string; bgColor: string }[] = [
@@ -49,6 +50,7 @@ export function ExpandableTestCaseCard({
   getScreenNameById,
   updateTestCase,
   deleteTestCase,
+  wbsTasks = [],
 }: ExpandableTestCaseCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [activePanel, setActivePanel] = useState<'info' | 'developer' | 'qa'>('info');
@@ -478,6 +480,16 @@ export function ExpandableTestCaseCard({
                   <div className="bg-slate-50 p-2.5 rounded border border-slate-200">
                     <label className="text-[9px] font-bold text-slate-400 uppercase block mb-1">📱 발생 환경</label>
                     <pre className="text-[10px] text-slate-600 whitespace-pre-wrap font-mono leading-relaxed">{tc.environment}</pre>
+                  </div>
+                )}
+
+                {/* 관련 WBS */}
+                {tc.relatedWbsId && (
+                  <div className="bg-blue-50 p-2.5 rounded border border-blue-200">
+                    <label className="text-[9px] font-bold text-blue-600 uppercase block mb-1">📋 관련 WBS</label>
+                    <p className="text-[11px] font-medium text-blue-800">
+                      {wbsTasks.find(w => w.id === tc.relatedWbsId)?.name || tc.relatedWbsId}
+                    </p>
                   </div>
                 )}
 
