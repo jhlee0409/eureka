@@ -96,44 +96,44 @@ export default function ScreenDetailPage() {
   return (
     <div className="min-h-screen flex flex-col bg-white text-slate-900">
       {/* Header */}
-      <header className="h-16 border-b border-slate-300 flex items-center justify-between px-8 bg-white shrink-0 shadow-sm z-50">
-        <div className="flex items-center gap-6">
-          <button onClick={handleClose} className="p-2 hover:bg-slate-100 rounded-xl transition-all border border-slate-200 shadow-sm">
-            <svg className="w-5 h-5 text-slate-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M15 19l-7-7 7-7" />
+      <header className="h-12 border-b border-slate-200 flex items-center justify-between px-4 bg-white shrink-0 z-50">
+        <div className="flex items-center gap-3">
+          <button onClick={handleClose} className="p-1.5 hover:bg-slate-100 rounded-lg transition-all">
+            <svg className="w-4 h-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
             </svg>
           </button>
           <div>
-            <h1 className="text-xl font-black tracking-tight text-slate-900 uppercase">
+            <h1 className="text-sm font-bold text-slate-900">
               {group.prefix}
               {activeScreenId === null ? (
-                <span className="text-yellow-600 ml-2">종합 관리 (MASTER)</span>
+                <span className="text-yellow-600 ml-1.5">종합 (MASTER)</span>
               ) : (
-                <span className="text-slate-400 ml-2">/ {activeScreen?.name || ''}</span>
+                <span className="text-slate-400 ml-1.5 font-medium">/ {activeScreen?.name || ''}</span>
               )}
             </h1>
-            <p className="text-[10px] text-slate-600 font-bold uppercase tracking-widest leading-none mt-1">{group.pageName}</p>
+            <p className="text-[9px] text-slate-500 font-medium uppercase tracking-wide">{group.pageName}</p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 bg-slate-200 p-1.5 rounded-2xl border border-slate-300 shadow-inner overflow-x-auto max-w-4xl">
+        <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg border border-slate-200 overflow-x-auto max-w-3xl">
           <button
             onClick={() => setActiveScreenId(null)}
-            className={`px-5 py-2 rounded-xl text-[11px] font-black transition-all whitespace-nowrap ${
-              activeScreenId === null ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-600 hover:text-slate-900'
+            className={`px-2.5 py-1 rounded-md text-[10px] font-bold transition-all whitespace-nowrap ${
+              activeScreenId === null ? 'bg-slate-800 text-white' : 'text-slate-600 hover:text-slate-900'
             }`}
           >
-            종합 (MASTER)
+            MASTER
           </button>
-          <div className="w-px h-4 bg-slate-400 mx-1"></div>
+          <div className="w-px h-3 bg-slate-300"></div>
           {allScreens.map((screen) => (
             <button
               key={screen.figmaId}
               onClick={() => setActiveScreenId(screen.figmaId)}
-              className={`px-4 py-2 rounded-xl text-[11px] font-black transition-all whitespace-nowrap ${
+              className={`px-2.5 py-1 rounded-md text-[10px] font-bold transition-all whitespace-nowrap ${
                 activeScreenId === screen.figmaId
-                  ? 'bg-white text-slate-900 shadow-md border border-slate-300'
-                  : 'text-slate-600 hover:text-slate-900'
+                  ? 'bg-white text-slate-900 shadow-sm'
+                  : 'text-slate-500 hover:text-slate-900'
               }`}
             >
               {screen.name}
@@ -141,36 +141,36 @@ export default function ScreenDetailPage() {
           ))}
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           {/* View Mode Toggle */}
-          <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200">
+          <div className="flex items-center bg-slate-100 p-0.5 rounded-lg border border-slate-200">
             <button
               onClick={() => setViewMode('standard')}
-              className={`px-3 py-1.5 rounded-lg text-[10px] font-black transition-all ${
+              className={`px-2 py-1 rounded text-[9px] font-bold transition-all ${
                 viewMode === 'standard' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
               }`}
             >
-              화면 뷰
+              화면
             </button>
             <button
               onClick={() => setViewMode('developer')}
-              className={`px-3 py-1.5 rounded-lg text-[10px] font-black transition-all ${
-                viewMode === 'developer' ? 'bg-blue-500 text-white shadow-sm' : 'text-slate-500 hover:text-slate-700'
+              className={`px-2 py-1 rounded text-[9px] font-bold transition-all ${
+                viewMode === 'developer' ? 'bg-blue-500 text-white' : 'text-slate-500 hover:text-slate-700'
               }`}
             >
-              담당자 뷰
+              담당자
             </button>
             <button
               onClick={() => setViewMode('qa')}
-              className={`px-3 py-1.5 rounded-lg text-[10px] font-black transition-all ${
-                viewMode === 'qa' ? 'bg-purple-500 text-white shadow-sm' : 'text-slate-500 hover:text-slate-700'
+              className={`px-2 py-1 rounded text-[9px] font-bold transition-all ${
+                viewMode === 'qa' ? 'bg-purple-500 text-white' : 'text-slate-500 hover:text-slate-700'
               }`}
             >
-              QA 뷰
+              QA
             </button>
           </div>
 
-          <button onClick={handleClose} className="text-xs font-black text-slate-500 hover:text-red-600 uppercase tracking-widest px-4 transition-colors">
+          <button onClick={handleClose} className="text-[10px] font-bold text-slate-400 hover:text-red-500 px-2 transition-colors">
             닫기
           </button>
         </div>
@@ -186,29 +186,29 @@ export default function ScreenDetailPage() {
           />
         )}
 
-        <div className={`${viewMode === 'standard' ? 'w-[65%]' : 'w-full'} flex flex-col bg-white overflow-hidden relative shadow-2xl`}>
+        <div className={`${viewMode === 'standard' ? 'w-[65%]' : 'w-full'} flex flex-col bg-white overflow-hidden relative shadow-lg`}>
           {viewMode === 'standard' ? (
             <>
-              <nav className="h-14 border-b border-slate-200 flex items-center px-10 gap-10 shrink-0 bg-white">
+              <nav className="h-10 border-b border-slate-200 flex items-center px-6 gap-6 shrink-0 bg-white">
                 <button
                   onClick={() => setActiveTab('wbs')}
-                  className={`h-full text-[11px] font-black uppercase tracking-[0.15em] border-b-4 transition-all ${
-                    activeTab === 'wbs' ? 'border-slate-900 text-slate-900' : 'border-transparent text-slate-500 hover:text-slate-900'
+                  className={`h-full text-[10px] font-bold uppercase tracking-wide border-b-2 transition-all ${
+                    activeTab === 'wbs' ? 'border-slate-800 text-slate-900' : 'border-transparent text-slate-500 hover:text-slate-900'
                   }`}
                 >
                   기획/개발 (WBS)
                 </button>
                 <button
                   onClick={() => setActiveTab('qa')}
-                  className={`h-full text-[11px] font-black uppercase tracking-[0.15em] border-b-4 transition-all ${
-                    activeTab === 'qa' ? 'border-slate-900 text-slate-900' : 'border-transparent text-slate-500 hover:text-slate-900'
+                  className={`h-full text-[10px] font-bold uppercase tracking-wide border-b-2 transition-all ${
+                    activeTab === 'qa' ? 'border-slate-800 text-slate-900' : 'border-transparent text-slate-500 hover:text-slate-900'
                   }`}
                 >
                   품질관리 (TC) ({testCases.length})
                 </button>
               </nav>
 
-              <div className="flex-1 overflow-y-auto custom-scrollbar p-10 bg-white">
+              <div className="flex-1 overflow-y-auto custom-scrollbar p-6 bg-white">
                 {activeTab === 'wbs' ? (
                   <WbsTab
                     wbsTasks={wbsTasks}
@@ -236,7 +236,7 @@ export default function ScreenDetailPage() {
               </div>
             </>
           ) : viewMode === 'developer' ? (
-            <div className="flex-1 overflow-y-auto custom-scrollbar p-10 bg-slate-50">
+            <div className="flex-1 overflow-y-auto custom-scrollbar p-6 bg-slate-50">
               <DeveloperView
                 wbsTasks={wbsTasks}
                 testCases={testCases}
@@ -248,7 +248,7 @@ export default function ScreenDetailPage() {
               />
             </div>
           ) : (
-            <div className="flex-1 overflow-y-auto custom-scrollbar p-10 bg-slate-50">
+            <div className="flex-1 overflow-y-auto custom-scrollbar p-6 bg-slate-50">
               <QaView
                 testCases={testCases}
                 addTestCase={addTestCase}
