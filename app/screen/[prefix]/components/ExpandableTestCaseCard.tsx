@@ -301,6 +301,13 @@ export function ExpandableTestCaseCard({
           {tc.position}
         </span>
 
+        {/* 관련 WBS */}
+        {tc.relatedWbsId && (
+          <span className="text-[9px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200 shrink-0 max-w-[120px] truncate" title={wbsTasks.find(w => w.id === tc.relatedWbsId)?.name}>
+            📋 {wbsTasks.find(w => w.id === tc.relatedWbsId)?.name || 'WBS'}
+          </span>
+        )}
+
         {/* 담당자 (빠른 변경) */}
         <div className="shrink-0" onClick={e => e.stopPropagation()}>
           {isMasterView ? (
