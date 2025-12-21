@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import {
   TestCase,
   QAStatus,
@@ -9,10 +9,6 @@ import {
   QAPosition,
   IssueType,
   Comment,
-  ActivityLog,
-  VerificationItem,
-  RejectReason,
-  DeployEnv,
   WbsTask,
 } from '../../../types';
 import { TEAM_MEMBERS } from '../hooks/useScreenData';
@@ -25,25 +21,6 @@ const PRIORITY_OPTIONS = ['High', 'Medium', 'Low'] as const;
 const POSITION_OPTIONS = ['Front-end', 'Back-end', 'Design', 'PM'] as const;
 const ISSUE_TYPE_OPTIONS = ['bug', 'improvement', 'question', 'task'] as const;
 
-const STATUS_CONFIG: Record<QAStatus, { label: string; color: string }> = {
-  Reviewing: { label: '검토중', color: 'bg-yellow-100 text-yellow-700' },
-  DevError: { label: 'Dev오류', color: 'bg-red-100 text-red-700' },
-  ProdError: { label: 'Prod오류', color: 'bg-rose-100 text-rose-700' },
-  DevDone: { label: 'Dev완료', color: 'bg-green-100 text-green-700' },
-  ProdDone: { label: 'Prod완료', color: 'bg-emerald-100 text-emerald-700' },
-  Hold: { label: '보류', color: 'bg-orange-100 text-orange-700' },
-  Rejected: { label: '반려', color: 'bg-gray-100 text-gray-700' },
-  Duplicate: { label: '중복', color: 'bg-purple-100 text-purple-700' },
-};
-
-const PROGRESS_CONFIG: Record<QAProgress, { label: string; color: string }> = {
-  Waiting: { label: '대기', color: 'bg-slate-100 text-slate-600' },
-  Checking: { label: '확인', color: 'bg-cyan-100 text-cyan-700' },
-  Working: { label: '작업', color: 'bg-purple-100 text-purple-700' },
-  DevDeployed: { label: 'Dev배포', color: 'bg-blue-100 text-blue-700' },
-  ProdDeployed: { label: 'Prod배포', color: 'bg-green-100 text-green-700' },
-};
-
 const ISSUE_TYPE_CONFIG: Record<IssueType, { label: string; icon: string; color: string }> = {
   bug: { label: '버그', icon: '🐛', color: 'bg-red-50 text-red-700' },
   improvement: { label: '개선', icon: '✨', color: 'bg-blue-50 text-blue-700' },
@@ -51,10 +28,10 @@ const ISSUE_TYPE_CONFIG: Record<IssueType, { label: string; icon: string; color:
   task: { label: '작업', icon: '📋', color: 'bg-green-50 text-green-700' },
 };
 
-const PRIORITY_CONFIG: Record<QAPriority, { label: string; color: string; dot: string }> = {
-  High: { label: 'High', color: 'text-red-600', dot: 'bg-red-500' },
-  Medium: { label: 'Med', color: 'text-orange-600', dot: 'bg-orange-400' },
-  Low: { label: 'Low', color: 'text-green-600', dot: 'bg-green-500' },
+const PRIORITY_CONFIG: Record<QAPriority, { dot: string }> = {
+  High: { dot: 'bg-red-500' },
+  Medium: { dot: 'bg-orange-400' },
+  Low: { dot: 'bg-green-500' },
 };
 
 interface TestCaseTableProps {
@@ -81,11 +58,7 @@ export function TestCaseTable({
   const toggleExpand = (id: string) => {
     setExpandedIds(prev => {
       const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
+      next.has(id) ? next.delete(id) : next.add(id);
       return next;
     });
   };
@@ -98,14 +71,12 @@ export function TestCaseTable({
   const handleAddComment = (tcId: string, tc: TestCase) => {
     const text = newComment[tcId]?.trim();
     if (!text) return;
-
     const comment: Comment = {
       id: crypto.randomUUID(),
       userName: commentUser[tcId] || TEAM_MEMBERS[0],
       text,
       timestamp: new Date().toLocaleString('ko-KR', { hour12: false }),
     };
-
     updateTestCase(tcId, { comments: [...tc.comments, comment] });
     setNewComment(prev => ({ ...prev, [tcId]: '' }));
   };
@@ -113,22 +84,25 @@ export function TestCaseTable({
   const isClosed = (status: QAStatus) =>
     ['DevDone', 'ProdDone', 'Rejected', 'Duplicate'].includes(status);
 
+  // 컬럼 수 계산
+  const columnCount = isMasterView ? 9 : 10;
+
   return (
-    <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">
-      <table className="w-full text-left table-fixed">
+    <div className="bg-white border border-slate-200 rounded-lg overflow-x-auto">
+      <table className="w-full text-left min-w-[900px]">
         <thead className="bg-slate-50 text-[9px] font-bold text-slate-500 uppercase tracking-wide border-b border-slate-200">
           <tr>
-            {!isMasterView && <th className="w-8 px-2 py-2.5"></th>}
-            {isMasterView && <th className="w-20 px-3 py-2.5">화면</th>}
-            <th className="w-16 px-2 py-2.5">타입</th>
-            <th className="w-12 px-2 py-2.5">중요도</th>
+            {!isMasterView && <th className="w-[32px] px-2 py-2.5"></th>}
+            {isMasterView && <th className="w-[80px] px-2 py-2.5">화면</th>}
+            <th className="w-[60px] px-2 py-2.5">타입</th>
+            <th className="w-[50px] px-2 py-2.5 text-center">중요</th>
             <th className="px-2 py-2.5">요약</th>
-            <th className="w-20 px-2 py-2.5">포지션</th>
-            <th className="w-28 px-2 py-2.5">관련 WBS</th>
-            <th className="w-24 px-2 py-2.5">담당자</th>
-            <th className="w-20 px-2 py-2.5">상태</th>
-            <th className="w-20 px-2 py-2.5">진행도</th>
-            {!isMasterView && <th className="w-8 px-2 py-2.5"></th>}
+            <th className="w-[80px] px-2 py-2.5">포지션</th>
+            <th className="w-[100px] px-2 py-2.5">관련WBS</th>
+            <th className="w-[90px] px-2 py-2.5">담당자</th>
+            <th className="w-[80px] px-2 py-2.5">상태</th>
+            <th className="w-[80px] px-2 py-2.5">진행도</th>
+            {!isMasterView && <th className="w-[32px] px-2 py-2.5"></th>}
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-100">
@@ -137,41 +111,33 @@ export function TestCaseTable({
             const closed = isClosed(tc.status);
             const issueConfig = tc.issueType ? ISSUE_TYPE_CONFIG[tc.issueType] : null;
             const priorityConfig = PRIORITY_CONFIG[tc.priority];
-            const statusConfig = STATUS_CONFIG[tc.status];
-            const progressConfig = PROGRESS_CONFIG[tc.progress];
             const wbsName = getWbsName(tc.relatedWbsId);
 
             return (
               <React.Fragment key={tc.id}>
-                {/* 메인 행 */}
                 <tr
-                  className={`group hover:bg-slate-50 transition-colors ${isExpanded ? 'bg-blue-50/50' : ''} ${closed ? 'opacity-60' : ''}`}
+                  className={`group hover:bg-slate-50 transition-colors cursor-pointer ${isExpanded ? 'bg-blue-50/50' : ''} ${closed ? 'opacity-60' : ''}`}
                   onClick={() => !isMasterView && toggleExpand(tc.id)}
                 >
-                  {/* 확장 아이콘 */}
                   {!isMasterView && (
-                    <td className="px-2 py-2 cursor-pointer">
+                    <td className="px-2 py-2">
                       <svg
                         className={`w-3 h-3 text-slate-400 transition-transform ${isExpanded ? 'rotate-90' : ''}`}
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" viewBox="0 0 24 24"
                       >
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7" />
                       </svg>
                     </td>
                   )}
 
-                  {/* 화면명 (Master View) */}
                   {isMasterView && (
-                    <td className="px-3 py-2">
+                    <td className="px-2 py-2">
                       <span className="text-[9px] font-bold text-yellow-700 bg-yellow-50 px-1.5 py-0.5 rounded truncate block">
                         {getScreenNameById(tc.originScreenId)}
                       </span>
                     </td>
                   )}
 
-                  {/* 타입 */}
                   <td className="px-2 py-2" onClick={e => e.stopPropagation()}>
                     {isMasterView ? (
                       issueConfig ? (
@@ -189,24 +155,19 @@ export function TestCaseTable({
                     )}
                   </td>
 
-                  {/* 중요도 */}
-                  <td className="px-2 py-2" onClick={e => e.stopPropagation()}>
+                  <td className="px-2 py-2 text-center" onClick={e => e.stopPropagation()}>
                     {isMasterView ? (
-                      <div className="flex items-center gap-1">
-                        <span className={`w-2 h-2 rounded-full ${priorityConfig.dot}`} />
-                      </div>
+                      <span className={`inline-block w-2.5 h-2.5 rounded-full ${priorityConfig.dot}`} />
                     ) : (
                       <StatusSelect
                         value={tc.priority}
                         onChange={(v) => updateTestCase(tc.id, { priority: v as QAPriority })}
                         options={PRIORITY_OPTIONS}
                         size="xs"
-                        variant="badge"
                       />
                     )}
                   </td>
 
-                  {/* 요약 */}
                   <td className="px-2 py-2" onClick={e => e.stopPropagation()}>
                     {isMasterView ? (
                       <p className={`text-xs font-medium truncate ${closed ? 'line-through text-slate-400' : 'text-slate-800'}`}>
@@ -222,7 +183,6 @@ export function TestCaseTable({
                     )}
                   </td>
 
-                  {/* 포지션 */}
                   <td className="px-2 py-2" onClick={e => e.stopPropagation()}>
                     {isMasterView ? (
                       <span className="text-[9px] font-medium text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">
@@ -238,10 +198,9 @@ export function TestCaseTable({
                     )}
                   </td>
 
-                  {/* 관련 WBS */}
                   <td className="px-2 py-2">
                     {wbsName ? (
-                      <span className="text-[9px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded truncate block" title={wbsName}>
+                      <span className="text-[9px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded truncate block max-w-[90px]" title={wbsName}>
                         {wbsName}
                       </span>
                     ) : (
@@ -249,7 +208,6 @@ export function TestCaseTable({
                     )}
                   </td>
 
-                  {/* 담당자 */}
                   <td className="px-2 py-2" onClick={e => e.stopPropagation()}>
                     <UserSelect
                       value={tc.assignee}
@@ -260,7 +218,6 @@ export function TestCaseTable({
                     />
                   </td>
 
-                  {/* 상태 */}
                   <td className="px-2 py-2" onClick={e => e.stopPropagation()}>
                     <StatusSelect
                       value={tc.status}
@@ -271,7 +228,6 @@ export function TestCaseTable({
                     />
                   </td>
 
-                  {/* 진행도 */}
                   <td className="px-2 py-2" onClick={e => e.stopPropagation()}>
                     <StatusSelect
                       value={tc.progress}
@@ -282,12 +238,11 @@ export function TestCaseTable({
                     />
                   </td>
 
-                  {/* 삭제 */}
                   {!isMasterView && (
                     <td className="px-2 py-2 text-center" onClick={e => e.stopPropagation()}>
                       <button
                         onClick={() => deleteTestCase(tc.id)}
-                        className="text-slate-300 hover:text-red-500 transition-colors"
+                        className="text-slate-300 hover:text-red-500 transition-colors text-lg leading-none"
                       >
                         ×
                       </button>
@@ -295,124 +250,116 @@ export function TestCaseTable({
                   )}
                 </tr>
 
-                {/* 확장 영역 */}
                 {isExpanded && !isMasterView && (
                   <tr>
-                    <td colSpan={11} className="bg-slate-50 border-t border-slate-100">
-                      <div className="p-4 space-y-4">
-                        {/* 상세 정보 그리드 */}
-                        <div className="grid grid-cols-2 gap-4">
-                          {/* 왼쪽: 상세 내용 */}
-                          <div className="space-y-3">
+                    <td colSpan={columnCount} className="bg-slate-50 border-t border-slate-100">
+                      <div className="p-4 grid grid-cols-2 gap-4">
+                        <div className="space-y-3">
+                          <div>
+                            <label className="text-[9px] font-bold text-slate-500 uppercase block mb-1">체크포인트</label>
+                            <input
+                              type="text"
+                              value={tc.checkpoint || ''}
+                              onChange={e => updateTestCase(tc.id, { checkpoint: e.target.value })}
+                              placeholder="예: 로그인 버튼"
+                              className="w-full px-2 py-1.5 rounded border border-slate-200 text-xs outline-none focus:border-slate-400 bg-white"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[9px] font-bold text-slate-500 uppercase block mb-1">상세 내용</label>
+                            <textarea
+                              value={tc.issueContent}
+                              onChange={e => updateTestCase(tc.id, { issueContent: e.target.value })}
+                              rows={2}
+                              placeholder="이슈에 대한 상세 설명..."
+                              className="w-full px-2 py-1.5 rounded border border-slate-200 text-xs outline-none focus:border-slate-400 resize-none bg-white"
+                            />
+                          </div>
+                          <div className="grid grid-cols-2 gap-2">
                             <div>
-                              <label className="text-[9px] font-bold text-slate-500 uppercase block mb-1">체크포인트</label>
-                              <input
-                                type="text"
-                                value={tc.checkpoint || ''}
-                                onChange={e => updateTestCase(tc.id, { checkpoint: e.target.value })}
-                                placeholder="예: 로그인 버튼"
-                                className="w-full px-2 py-1.5 rounded border border-slate-200 text-xs outline-none focus:border-slate-400"
-                              />
-                            </div>
-                            <div>
-                              <label className="text-[9px] font-bold text-slate-500 uppercase block mb-1">상세 내용</label>
+                              <label className="text-[9px] font-bold text-slate-500 uppercase block mb-1">재현 방법</label>
                               <textarea
-                                value={tc.issueContent}
-                                onChange={e => updateTestCase(tc.id, { issueContent: e.target.value })}
+                                value={tc.reproductionSteps || ''}
+                                onChange={e => updateTestCase(tc.id, { reproductionSteps: e.target.value })}
                                 rows={2}
-                                placeholder="이슈에 대한 상세 설명..."
-                                className="w-full px-2 py-1.5 rounded border border-slate-200 text-xs outline-none focus:border-slate-400 resize-none"
+                                placeholder="1. 첫 번째 단계..."
+                                className="w-full px-2 py-1.5 rounded border border-slate-200 text-xs outline-none focus:border-slate-400 resize-none bg-white"
                               />
                             </div>
-                            <div className="grid grid-cols-2 gap-2">
-                              <div>
-                                <label className="text-[9px] font-bold text-slate-500 uppercase block mb-1">재현 방법</label>
-                                <textarea
-                                  value={tc.reproductionSteps || ''}
-                                  onChange={e => updateTestCase(tc.id, { reproductionSteps: e.target.value })}
-                                  rows={2}
-                                  placeholder="1. 첫 번째 단계..."
-                                  className="w-full px-2 py-1.5 rounded border border-slate-200 text-xs outline-none focus:border-slate-400 resize-none"
-                                />
-                              </div>
-                              <div>
-                                <label className="text-[9px] font-bold text-slate-500 uppercase block mb-1">기대 결과</label>
-                                <textarea
-                                  value={tc.expectedResult || ''}
-                                  onChange={e => updateTestCase(tc.id, { expectedResult: e.target.value })}
-                                  rows={2}
-                                  placeholder="예상되는 정상 동작..."
-                                  className="w-full px-2 py-1.5 rounded border border-slate-200 text-xs outline-none focus:border-slate-400 resize-none"
-                                />
-                              </div>
+                            <div>
+                              <label className="text-[9px] font-bold text-slate-500 uppercase block mb-1">기대 결과</label>
+                              <textarea
+                                value={tc.expectedResult || ''}
+                                onChange={e => updateTestCase(tc.id, { expectedResult: e.target.value })}
+                                rows={2}
+                                placeholder="예상되는 정상 동작..."
+                                className="w-full px-2 py-1.5 rounded border border-slate-200 text-xs outline-none focus:border-slate-400 resize-none bg-white"
+                              />
                             </div>
-                            {tc.environment && (
-                              <div className="bg-slate-100 p-2 rounded text-[10px] text-slate-600">
-                                <span className="font-bold">환경:</span> {tc.environment}
-                              </div>
-                            )}
+                          </div>
+                          {tc.environment && (
+                            <div className="bg-slate-100 p-2 rounded text-[10px] text-slate-600">
+                              <span className="font-bold">환경:</span> {tc.environment}
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="space-y-3">
+                          <div className="grid grid-cols-2 gap-2 text-[10px]">
+                            <div className="bg-white p-2 rounded border border-slate-200">
+                              <span className="text-slate-500">보고자:</span>{' '}
+                              <span className="font-bold text-slate-700">{tc.reporter}</span>
+                            </div>
+                            <div className="bg-white p-2 rounded border border-slate-200">
+                              <span className="text-slate-500">등록일:</span>{' '}
+                              <span className="font-bold text-slate-700">{tc.date}</span>
+                            </div>
                           </div>
 
-                          {/* 오른쪽: 메타 정보 & 댓글 */}
-                          <div className="space-y-3">
-                            <div className="grid grid-cols-2 gap-2 text-[10px]">
-                              <div className="bg-slate-100 p-2 rounded">
-                                <span className="text-slate-500">보고자:</span>{' '}
-                                <span className="font-bold text-slate-700">{tc.reporter}</span>
-                              </div>
-                              <div className="bg-slate-100 p-2 rounded">
-                                <span className="text-slate-500">등록일:</span>{' '}
-                                <span className="font-bold text-slate-700">{tc.date}</span>
-                              </div>
+                          {wbsName && (
+                            <div className="bg-blue-50 p-2 rounded border border-blue-200">
+                              <label className="text-[9px] font-bold text-blue-600 uppercase block mb-0.5">관련 WBS</label>
+                              <p className="text-xs font-medium text-blue-800">{wbsName}</p>
                             </div>
+                          )}
 
-                            {/* 관련 WBS 상세 */}
-                            {tc.relatedWbsId && wbsName && (
-                              <div className="bg-blue-50 p-2 rounded border border-blue-200">
-                                <label className="text-[9px] font-bold text-blue-600 uppercase block mb-0.5">관련 WBS</label>
-                                <p className="text-xs font-medium text-blue-800">{wbsName}</p>
-                              </div>
-                            )}
-
-                            {/* 댓글 */}
-                            <div>
-                              <label className="text-[9px] font-bold text-slate-500 uppercase block mb-1">
-                                댓글 ({tc.comments.length})
-                              </label>
-                              <div className="max-h-24 overflow-y-auto space-y-1 mb-2">
-                                {tc.comments.map(c => (
-                                  <div key={c.id} className="bg-white p-2 rounded border border-slate-200 text-[10px]">
-                                    <span className="font-bold text-slate-700">{c.userName}</span>
-                                    <span className="text-slate-400 ml-1">{c.timestamp}</span>
-                                    <p className="text-slate-600 mt-0.5">{c.text}</p>
-                                  </div>
-                                ))}
-                                {tc.comments.length === 0 && (
-                                  <p className="text-[10px] text-slate-400 text-center py-1">댓글 없음</p>
-                                )}
-                              </div>
-                              <div className="flex gap-1">
-                                <UserSelect
-                                  value={commentUser[tc.id] || TEAM_MEMBERS[0]}
-                                  onChange={(v) => setCommentUser(prev => ({ ...prev, [tc.id]: v }))}
-                                  options={TEAM_MEMBERS}
-                                  size="xs"
-                                />
-                                <input
-                                  type="text"
-                                  value={newComment[tc.id] || ''}
-                                  onChange={e => setNewComment(prev => ({ ...prev, [tc.id]: e.target.value }))}
-                                  onKeyDown={e => e.key === 'Enter' && handleAddComment(tc.id, tc)}
-                                  placeholder="댓글..."
-                                  className="flex-1 px-2 py-1 rounded border border-slate-200 text-[10px] outline-none focus:border-slate-400"
-                                />
-                                <button
-                                  onClick={() => handleAddComment(tc.id, tc)}
-                                  className="px-2 py-1 bg-slate-800 text-white rounded text-[10px] font-bold hover:bg-slate-900"
-                                >
-                                  추가
-                                </button>
-                              </div>
+                          <div>
+                            <label className="text-[9px] font-bold text-slate-500 uppercase block mb-1">
+                              댓글 ({tc.comments.length})
+                            </label>
+                            <div className="max-h-24 overflow-y-auto space-y-1 mb-2">
+                              {tc.comments.map(c => (
+                                <div key={c.id} className="bg-white p-2 rounded border border-slate-200 text-[10px]">
+                                  <span className="font-bold text-slate-700">{c.userName}</span>
+                                  <span className="text-slate-400 ml-1">{c.timestamp}</span>
+                                  <p className="text-slate-600 mt-0.5">{c.text}</p>
+                                </div>
+                              ))}
+                              {tc.comments.length === 0 && (
+                                <p className="text-[10px] text-slate-400 text-center py-1">댓글 없음</p>
+                              )}
+                            </div>
+                            <div className="flex gap-1">
+                              <UserSelect
+                                value={commentUser[tc.id] || TEAM_MEMBERS[0]}
+                                onChange={(v) => setCommentUser(prev => ({ ...prev, [tc.id]: v }))}
+                                options={TEAM_MEMBERS}
+                                size="xs"
+                              />
+                              <input
+                                type="text"
+                                value={newComment[tc.id] || ''}
+                                onChange={e => setNewComment(prev => ({ ...prev, [tc.id]: e.target.value }))}
+                                onKeyDown={e => e.key === 'Enter' && handleAddComment(tc.id, tc)}
+                                placeholder="댓글..."
+                                className="flex-1 px-2 py-1 rounded border border-slate-200 text-[10px] outline-none focus:border-slate-400 bg-white"
+                              />
+                              <button
+                                onClick={() => handleAddComment(tc.id, tc)}
+                                className="px-2 py-1 bg-slate-800 text-white rounded text-[10px] font-bold hover:bg-slate-900"
+                              >
+                                추가
+                              </button>
                             </div>
                           </div>
                         </div>
