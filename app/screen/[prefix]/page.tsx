@@ -4,7 +4,7 @@ import React from 'react';
 import { ScreenData } from '../../types';
 import { ScreenProvider, useScreen } from './context/ScreenContext';
 import { ScreenHeader } from './components/ScreenHeader';
-import { SpecPanel } from './components/SpecPanel';
+import { SpecDrawer } from './components/SpecDrawer';
 import { WbsTab } from './components/WbsTab';
 import { QaTab } from './components/QaTab';
 import { DeveloperView } from './components/DeveloperView';
@@ -51,14 +51,6 @@ function ScreenContent() {
     <div className="min-h-screen flex flex-col bg-white text-slate-900">
       <ScreenHeader />
 
-      <SpecPanel
-        activeScreen={activeScreen}
-        allScreensCount={allScreens.length}
-        isMasterView={isMasterView}
-        isOpen={isSpecPanelOpen}
-        onToggle={toggleSpecPanel}
-      />
-
       <div className="flex-1 flex overflow-hidden bg-slate-50">
         <MainContent
           activeTab={activeTab}
@@ -66,6 +58,15 @@ function ScreenContent() {
           isMasterView={isMasterView}
         />
       </div>
+
+      {/* Spec Drawer (Overlay) */}
+      <SpecDrawer
+        activeScreen={activeScreen}
+        allScreensCount={allScreens.length}
+        isMasterView={isMasterView}
+        isOpen={isSpecPanelOpen}
+        onClose={toggleSpecPanel}
+      />
     </div>
   );
 }
