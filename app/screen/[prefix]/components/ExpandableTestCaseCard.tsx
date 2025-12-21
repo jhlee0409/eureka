@@ -1,11 +1,18 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { TestCase, QAStatus, QAProgress, QAPriority, Comment, ActivityLog, VerificationItem, RejectReason, DeployEnv } from '../../../types';
+import { TestCase, QAStatus, QAProgress, QAPriority, Comment, ActivityLog, VerificationItem, RejectReason, DeployEnv, IssueType } from '../../../types';
 import { TEAM_MEMBERS } from '../hooks/useScreenData';
 import { UserSelect, StatusSelect } from '../../../components/ui';
 
 const REJECT_REASON_OPTIONS = ['not_reproducible', 'working_as_designed', 'duplicate', 'insufficient_info', 'out_of_scope'] as const;
+
+const ISSUE_TYPE_CONFIG: Record<IssueType, { label: string; icon: string; color: string }> = {
+  bug: { label: '버그', icon: '🐛', color: 'bg-red-100 text-red-700 border-red-200' },
+  improvement: { label: '개선', icon: '✨', color: 'bg-blue-100 text-blue-700 border-blue-200' },
+  question: { label: '문의', icon: '❓', color: 'bg-yellow-100 text-yellow-700 border-yellow-200' },
+  task: { label: '작업', icon: '📋', color: 'bg-green-100 text-green-700 border-green-200' },
+};
 
 interface ExpandableTestCaseCardProps {
   tc: TestCase;
@@ -13,6 +20,7 @@ interface ExpandableTestCaseCardProps {
   getScreenNameById: (figmaId: string | undefined) => string;
   updateTestCase: (id: string, updates: Partial<TestCase>) => void;
   deleteTestCase: (id: string) => void;
+  wbsTasks?: { id: string; name: string }[];
 }
 
 const STATUS_OPTIONS: { value: QAStatus; label: string; color: string; bgColor: string }[] = [
@@ -49,6 +57,7 @@ export function ExpandableTestCaseCard({
   getScreenNameById,
   updateTestCase,
   deleteTestCase,
+  wbsTasks = [],
 }: ExpandableTestCaseCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [activePanel, setActivePanel] = useState<'info' | 'developer' | 'qa'>('info');
@@ -257,6 +266,13 @@ export function ExpandableTestCaseCard({
           title={tc.priority}
         />
 
+        {/* 이슈 타입 */}
+        {tc.issueType && ISSUE_TYPE_CONFIG[tc.issueType] && (
+          <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border shrink-0 ${ISSUE_TYPE_CONFIG[tc.issueType].color}`}>
+            {ISSUE_TYPE_CONFIG[tc.issueType].icon} {ISSUE_TYPE_CONFIG[tc.issueType].label}
+          </span>
+        )}
+
         {/* 체크포인트 */}
         <div className="w-16 shrink-0">
           {tc.checkpoint ? (
@@ -284,6 +300,13 @@ export function ExpandableTestCaseCard({
         <span className="text-[9px] font-medium text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded shrink-0">
           {tc.position}
         </span>
+
+        {/* 관련 WBS */}
+        {tc.relatedWbsId && (
+          <span className="text-[9px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200 shrink-0 max-w-[120px] truncate" title={wbsTasks.find(w => w.id === tc.relatedWbsId)?.name}>
+            📋 {wbsTasks.find(w => w.id === tc.relatedWbsId)?.name || 'WBS'}
+          </span>
+        )}
 
         {/* 담당자 (빠른 변경) */}
         <div className="shrink-0" onClick={e => e.stopPropagation()}>
@@ -478,6 +501,16 @@ export function ExpandableTestCaseCard({
                   <div className="bg-slate-50 p-2.5 rounded border border-slate-200">
                     <label className="text-[9px] font-bold text-slate-400 uppercase block mb-1">📱 발생 환경</label>
                     <pre className="text-[10px] text-slate-600 whitespace-pre-wrap font-mono leading-relaxed">{tc.environment}</pre>
+                  </div>
+                )}
+
+                {/* 관련 WBS */}
+                {tc.relatedWbsId && (
+                  <div className="bg-blue-50 p-2.5 rounded border border-blue-200">
+                    <label className="text-[9px] font-bold text-blue-600 uppercase block mb-1">📋 관련 WBS</label>
+                    <p className="text-[11px] font-medium text-blue-800">
+                      {wbsTasks.find(w => w.id === tc.relatedWbsId)?.name || tc.relatedWbsId}
+                    </p>
                   </div>
                 )}
 
