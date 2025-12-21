@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 
 // Status configurations with colors
 export const STATUS_CONFIG = {
@@ -48,6 +49,16 @@ export const STATUS_CONFIG = {
   'easy': { color: 'bg-green-500', textColor: 'text-green-700', bgColor: 'bg-green-50', label: 'Easy' },
   'medium': { color: 'bg-amber-500', textColor: 'text-amber-700', bgColor: 'bg-amber-50', label: 'Medium' },
   'hard': { color: 'bg-red-500', textColor: 'text-red-700', bgColor: 'bg-red-50', label: 'Hard' },
+
+  // Filter options
+  'all': { color: 'bg-slate-500', textColor: 'text-slate-700', bgColor: 'bg-slate-50', label: '전체' },
+
+  // Reject Reasons
+  'not_reproducible': { color: 'bg-gray-500', textColor: 'text-gray-700', bgColor: 'bg-gray-50', label: '재현 불가' },
+  'working_as_designed': { color: 'bg-blue-500', textColor: 'text-blue-700', bgColor: 'bg-blue-50', label: '설계대로 작동' },
+  'duplicate': { color: 'bg-purple-500', textColor: 'text-purple-700', bgColor: 'bg-purple-50', label: '중복 이슈' },
+  'insufficient_info': { color: 'bg-orange-500', textColor: 'text-orange-700', bgColor: 'bg-orange-50', label: '정보 부족' },
+  'out_of_scope': { color: 'bg-slate-500', textColor: 'text-slate-700', bgColor: 'bg-slate-50', label: '범위 외' },
 } as const;
 
 type StatusKey = keyof typeof STATUS_CONFIG;
@@ -72,18 +83,49 @@ export function StatusSelect<T extends string>({
   disabled = false,
 }: StatusSelectProps<T>) {
   const [isOpen, setIsOpen] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Calculate dropdown position
+  const updatePosition = useCallback(() => {
+    if (triggerRef.current) {
+      const rect = triggerRef.current.getBoundingClientRect();
+      setDropdownPosition({
+        top: rect.bottom + window.scrollY + 4,
+        left: rect.left + window.scrollX,
+        width: Math.max(rect.width, 140),
+      });
+    }
+  }, []);
+
+  // Update position when opening
+  useEffect(() => {
+    if (isOpen) {
+      updatePosition();
+      window.addEventListener('scroll', updatePosition, true);
+      window.addEventListener('resize', updatePosition);
+      return () => {
+        window.removeEventListener('scroll', updatePosition, true);
+        window.removeEventListener('resize', updatePosition);
+      };
+    }
+  }, [isOpen, updatePosition]);
 
   // Close on outside click
   useEffect(() => {
+    if (!isOpen) return;
     const handleClickOutside = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+      if (
+        triggerRef.current && !triggerRef.current.contains(e.target as Node) &&
+        dropdownRef.current && !dropdownRef.current.contains(e.target as Node)
+      ) {
         setIsOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  }, [isOpen]);
 
   // Close on ESC
   useEffect(() => {
@@ -113,9 +155,58 @@ export function StatusSelect<T extends string>({
     md: 'w-2.5 h-2.5',
   };
 
+  const dropdown = isOpen && typeof window !== 'undefined' ? createPortal(
+    <div
+      ref={dropdownRef}
+      style={{
+        position: 'absolute',
+        top: dropdownPosition.top,
+        left: dropdownPosition.left,
+        minWidth: dropdownPosition.width,
+        zIndex: 9999,
+      }}
+      className="bg-white rounded-lg shadow-lg border border-slate-200 py-1 animate-in fade-in zoom-in duration-150"
+    >
+      {options.map((option) => {
+        const optConfig = STATUS_CONFIG[option as StatusKey] || {
+          color: 'bg-slate-400',
+          textColor: 'text-slate-700',
+          bgColor: 'bg-slate-50',
+          label: option
+        };
+        const isSelected = option === value;
+
+        return (
+          <button
+            key={option}
+            type="button"
+            onClick={() => {
+              onChange(option);
+              setIsOpen(false);
+            }}
+            className={`
+              w-full flex items-center gap-2 px-3 py-1.5 text-left text-[11px] transition-colors
+              ${isSelected ? 'bg-slate-100 font-semibold' : 'hover:bg-slate-50'}
+            `}
+          >
+            <span className={`w-2 h-2 rounded-full ${optConfig.color} shrink-0`} />
+            <span className="text-slate-700">{optConfig.label}</span>
+            {isSelected && (
+              <svg className="w-3 h-3 text-slate-500 ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+              </svg>
+            )}
+          </button>
+        );
+      })}
+    </div>,
+    document.body
+  ) : null;
+
   return (
-    <div ref={containerRef} className={`relative inline-block ${className}`}>
+    <div className={`relative inline-block ${className}`}>
       <button
+        ref={triggerRef}
         type="button"
         onClick={() => !disabled && setIsOpen(!isOpen)}
         disabled={disabled}
@@ -142,43 +233,7 @@ export function StatusSelect<T extends string>({
           </svg>
         )}
       </button>
-
-      {isOpen && (
-        <div className="absolute z-50 mt-1 min-w-[140px] bg-white rounded-lg shadow-lg border border-slate-200 py-1 animate-in fade-in zoom-in duration-150">
-          {options.map((option) => {
-            const optConfig = STATUS_CONFIG[option as StatusKey] || {
-              color: 'bg-slate-400',
-              textColor: 'text-slate-700',
-              bgColor: 'bg-slate-50',
-              label: option
-            };
-            const isSelected = option === value;
-
-            return (
-              <button
-                key={option}
-                type="button"
-                onClick={() => {
-                  onChange(option);
-                  setIsOpen(false);
-                }}
-                className={`
-                  w-full flex items-center gap-2 px-3 py-1.5 text-left text-[11px] transition-colors
-                  ${isSelected ? 'bg-slate-100 font-semibold' : 'hover:bg-slate-50'}
-                `}
-              >
-                <span className={`w-2 h-2 rounded-full ${optConfig.color} shrink-0`} />
-                <span className="text-slate-700">{optConfig.label}</span>
-                {isSelected && (
-                  <svg className="w-3 h-3 text-slate-500 ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                  </svg>
-                )}
-              </button>
-            );
-          })}
-        </div>
-      )}
+      {dropdown}
     </div>
   );
 }

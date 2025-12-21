@@ -3,6 +3,10 @@
 import React, { useState, useMemo } from 'react';
 import { TestCase, QAStatus, QAPriority, QAPosition } from '../../../types';
 import { TEAM_MEMBERS, STATUS_ORDER, STATUS_CONFIG } from '../config/constants';
+import { StatusSelect } from '../../../components/ui';
+
+const QA_STATUS_OPTIONS = ['Reviewing', 'DevError', 'ProdError', 'DevDone', 'ProdDone', 'Hold'] as const;
+const PRIORITY_OPTIONS = ['High', 'Medium', 'Low'] as const;
 
 interface QaViewProps {
   testCases: TestCase[];
@@ -201,15 +205,13 @@ export function QaView({
               className="flex-1 px-2 py-1.5 rounded text-[10px] font-medium border border-blue-200 outline-none focus:border-blue-400"
               onKeyDown={(e) => e.key === 'Enter' && handleQuickAdd()}
             />
-            <select
+            <StatusSelect
               value={quickAdd.priority}
-              onChange={(e) => setQuickAdd(prev => ({ ...prev, priority: e.target.value as QAPriority }))}
-              className="px-2 py-1.5 rounded text-[10px] font-bold border border-blue-200 outline-none"
-            >
-              <option value="High">🔴 High</option>
-              <option value="Medium">🟠 Medium</option>
-              <option value="Low">🟢 Low</option>
-            </select>
+              onChange={(v) => setQuickAdd(prev => ({ ...prev, priority: v as QAPriority }))}
+              options={PRIORITY_OPTIONS}
+              size="xs"
+              variant="badge"
+            />
             <button
               onClick={handleQuickAdd}
               className="px-3 py-1.5 bg-blue-600 text-white rounded text-[10px] font-bold hover:bg-blue-700 transition-all"
@@ -267,18 +269,13 @@ export function QaView({
                       </div>
                     </div>
                     {!isMasterView && (
-                      <select
+                      <StatusSelect
                         value={tc.status}
-                        onChange={(e) => handleStatusChange(tc.id, e.target.value as QAStatus)}
-                        className="px-2 py-1 rounded text-[9px] font-bold border border-slate-200 outline-none cursor-pointer bg-white"
-                      >
-                        <option value="Reviewing">검토중</option>
-                        <option value="DevError">Dev 오류</option>
-                        <option value="ProdError">Prod 오류</option>
-                        <option value="DevDone">Dev 완료</option>
-                        <option value="ProdDone">Prod 완료</option>
-                        <option value="Hold">보류</option>
-                      </select>
+                        onChange={(v) => handleStatusChange(tc.id, v as QAStatus)}
+                        options={QA_STATUS_OPTIONS}
+                        size="xs"
+                        variant="badge"
+                      />
                     )}
                   </div>
                 ))}

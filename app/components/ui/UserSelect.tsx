@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 
 // User avatar color generator
 function getUserColor(name: string): string {
@@ -40,17 +41,57 @@ export function UserSelect({
   disabled = false,
 }: UserSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Calculate dropdown position
+  const updatePosition = useCallback(() => {
+    if (triggerRef.current) {
+      const rect = triggerRef.current.getBoundingClientRect();
+      setDropdownPosition({
+        top: rect.bottom + window.scrollY + 4,
+        left: rect.left + window.scrollX,
+        width: Math.max(rect.width, 140),
+      });
+    }
+  }, []);
+
+  // Update position when opening
+  useEffect(() => {
+    if (isOpen) {
+      updatePosition();
+      window.addEventListener('scroll', updatePosition, true);
+      window.addEventListener('resize', updatePosition);
+      return () => {
+        window.removeEventListener('scroll', updatePosition, true);
+        window.removeEventListener('resize', updatePosition);
+      };
+    }
+  }, [isOpen, updatePosition]);
 
   // Close on outside click
   useEffect(() => {
+    if (!isOpen) return;
     const handleClickOutside = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+      if (
+        triggerRef.current && !triggerRef.current.contains(e.target as Node) &&
+        dropdownRef.current && !dropdownRef.current.contains(e.target as Node)
+      ) {
         setIsOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isOpen]);
+
+  // Close on ESC
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsOpen(false);
+    };
+    document.addEventListener('keydown', handleEsc);
+    return () => document.removeEventListener('keydown', handleEsc);
   }, []);
 
   const sizeClasses = {
@@ -67,9 +108,53 @@ export function UserSelect({
 
   const getInitial = (name: string) => name.charAt(0).toUpperCase();
 
+  const dropdown = isOpen && typeof window !== 'undefined' ? createPortal(
+    <div
+      ref={dropdownRef}
+      style={{
+        position: 'absolute',
+        top: dropdownPosition.top,
+        left: dropdownPosition.left,
+        minWidth: dropdownPosition.width,
+        zIndex: 9999,
+      }}
+      className="bg-white rounded-lg shadow-lg border border-slate-200 py-1 animate-in fade-in zoom-in duration-150"
+    >
+      {options.map((option) => {
+        const isSelected = option === value;
+        return (
+          <button
+            key={option}
+            type="button"
+            onClick={() => {
+              onChange(option);
+              setIsOpen(false);
+            }}
+            className={`
+              w-full flex items-center gap-2 px-3 py-1.5 text-left text-[11px] transition-colors
+              ${isSelected ? 'bg-slate-100 font-semibold' : 'hover:bg-slate-50'}
+            `}
+          >
+            <span className={`w-5 h-5 rounded-full ${getUserColor(option)} text-white flex items-center justify-center font-bold text-[9px] shrink-0`}>
+              {getInitial(option)}
+            </span>
+            <span className="text-slate-700">{option}</span>
+            {isSelected && (
+              <svg className="w-3 h-3 text-slate-500 ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+              </svg>
+            )}
+          </button>
+        );
+      })}
+    </div>,
+    document.body
+  ) : null;
+
   return (
-    <div ref={containerRef} className={`relative inline-block ${className}`}>
+    <div className={`relative inline-block ${className}`}>
       <button
+        ref={triggerRef}
         type="button"
         onClick={() => !disabled && setIsOpen(!isOpen)}
         disabled={disabled}
@@ -101,38 +186,7 @@ export function UserSelect({
           </svg>
         )}
       </button>
-
-      {isOpen && (
-        <div className="absolute z-50 mt-1 min-w-[140px] bg-white rounded-lg shadow-lg border border-slate-200 py-1 animate-in fade-in zoom-in duration-150">
-          {options.map((option) => {
-            const isSelected = option === value;
-            return (
-              <button
-                key={option}
-                type="button"
-                onClick={() => {
-                  onChange(option);
-                  setIsOpen(false);
-                }}
-                className={`
-                  w-full flex items-center gap-2 px-3 py-1.5 text-left text-[11px] transition-colors
-                  ${isSelected ? 'bg-slate-100 font-semibold' : 'hover:bg-slate-50'}
-                `}
-              >
-                <span className={`w-5 h-5 rounded-full ${getUserColor(option)} text-white flex items-center justify-center font-bold text-[9px] shrink-0`}>
-                  {getInitial(option)}
-                </span>
-                <span className="text-slate-700">{option}</span>
-                {isSelected && (
-                  <svg className="w-3 h-3 text-slate-500 ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                  </svg>
-                )}
-              </button>
-            );
-          })}
-        </div>
-      )}
+      {dropdown}
     </div>
   );
 }

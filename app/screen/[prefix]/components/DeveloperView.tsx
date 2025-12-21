@@ -3,6 +3,10 @@
 import React, { useState, useMemo } from 'react';
 import { WbsTask, TestCase, WbsStatus, QAProgress } from '../../../types';
 import { TEAM_MEMBERS, PROGRESS_STEPS } from '../config/constants';
+import { StatusSelect, UserSelect } from '../../../components/ui';
+
+const WBS_STATUS_OPTIONS = ['Planning', 'In Progress', 'Done'] as const;
+const STATUS_FILTER_OPTIONS = ['all', 'Planning', 'In Progress', 'Done'] as const;
 
 interface DeveloperViewProps {
   wbsTasks: WbsTask[];
@@ -77,26 +81,21 @@ export function DeveloperView({
       <div className="bg-slate-50 px-3 py-2 rounded-lg border border-slate-200 flex flex-wrap items-center gap-3">
         <div className="flex items-center gap-1.5">
           <span className="text-[9px] font-bold text-slate-500 uppercase">담당자:</span>
-          <select
+          <UserSelect
             value={currentUser}
-            onChange={(e) => onUserChange(e.target.value)}
-            className="bg-white px-2 py-1 rounded text-[10px] font-bold border border-slate-200 outline-none"
-          >
-            {TEAM_MEMBERS.map(m => <option key={m} value={m}>{m}</option>)}
-          </select>
+            onChange={onUserChange}
+            options={TEAM_MEMBERS}
+            size="xs"
+          />
         </div>
         <div className="flex items-center gap-1.5">
           <span className="text-[9px] font-bold text-slate-500 uppercase">상태:</span>
-          <select
+          <StatusSelect
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as 'all' | WbsStatus)}
-            className="bg-white px-2 py-1 rounded text-[10px] font-bold border border-slate-200 outline-none"
-          >
-            <option value="all">전체</option>
-            <option value="Planning">대기</option>
-            <option value="In Progress">진행중</option>
-            <option value="Done">완료</option>
-          </select>
+            onChange={(v) => setStatusFilter(v as 'all' | WbsStatus)}
+            options={STATUS_FILTER_OPTIONS}
+            size="xs"
+          />
         </div>
         <label className="flex items-center gap-1.5 cursor-pointer">
           <input
@@ -159,29 +158,14 @@ export function DeveloperView({
                   {task.detail && <p className="text-[10px] text-slate-500 mb-2">{task.detail}</p>}
                   <div className="flex items-center justify-between">
                     <span className="text-[9px] text-slate-400">~{task.endDate}</span>
-                    {isMasterView ? (
-                      <span className={`px-2 py-0.5 rounded text-[9px] font-bold ${
-                        task.status === 'Done' ? 'bg-green-100 text-green-700' :
-                        task.status === 'In Progress' ? 'bg-blue-100 text-blue-700' :
-                        'bg-slate-100 text-slate-600'
-                      }`}>
-                        {task.status === 'Planning' ? '대기' : task.status === 'In Progress' ? '진행중' : '완료'}
-                      </span>
-                    ) : (
-                      <select
-                        value={task.status}
-                        onChange={(e) => handleStatusChange(task.id, e.target.value as WbsStatus)}
-                        className={`px-2 py-0.5 rounded text-[9px] font-bold border-0 outline-none cursor-pointer ${
-                          task.status === 'Done' ? 'bg-green-100 text-green-700' :
-                          task.status === 'In Progress' ? 'bg-blue-100 text-blue-700' :
-                          'bg-slate-100 text-slate-600'
-                        }`}
-                      >
-                        <option value="Planning">대기</option>
-                        <option value="In Progress">진행중</option>
-                        <option value="Done">완료</option>
-                      </select>
-                    )}
+                    <StatusSelect
+                      value={task.status}
+                      onChange={(v) => handleStatusChange(task.id, v as WbsStatus)}
+                      options={WBS_STATUS_OPTIONS}
+                      size="xs"
+                      variant="badge"
+                      disabled={isMasterView}
+                    />
                   </div>
                 </div>
               );

@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { WbsTask, WbsCategory, WbsDifficulty, WbsSubTask, TestCase } from '../../../types';
 import { TEAM_MEMBERS } from '../hooks/useScreenData';
+import { UserSelect } from '../../../components/ui';
 
 interface WbsAddModalProps {
   isOpen: boolean;
@@ -203,13 +204,12 @@ export function WbsAddModal({ isOpen, onClose, onAdd, testCases, originScreenId 
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-[9px] font-bold text-slate-400 uppercase mb-1">담당자</label>
-                <select
+                <UserSelect
                   value={formData.assignee}
-                  onChange={(e) => setFormData({ ...formData, assignee: e.target.value })}
-                  className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs font-medium outline-none focus:border-slate-400"
-                >
-                  {TEAM_MEMBERS.map(m => <option key={m} value={m}>{m}</option>)}
-                </select>
+                  onChange={(v) => setFormData({ ...formData, assignee: v })}
+                  options={TEAM_MEMBERS}
+                  size="sm"
+                />
               </div>
               <div>
                 <label className="block text-[9px] font-bold text-slate-400 uppercase mb-1">난이도</label>
@@ -296,13 +296,12 @@ export function WbsAddModal({ isOpen, onClose, onAdd, testCases, originScreenId 
                       placeholder="하위 작업명"
                       className="flex-1 px-2 py-1 rounded border border-slate-200 text-[10px] font-medium outline-none"
                     />
-                    <select
+                    <UserSelect
                       value={st.assignee}
-                      onChange={(e) => handleSubtaskChange(idx, 'assignee', e.target.value)}
-                      className="px-2 py-1 rounded border border-slate-200 text-[10px] font-medium outline-none"
-                    >
-                      {TEAM_MEMBERS.map(m => <option key={m} value={m}>{m}</option>)}
-                    </select>
+                      onChange={(v) => handleSubtaskChange(idx, 'assignee', v)}
+                      options={TEAM_MEMBERS}
+                      size="xs"
+                    />
                     <input
                       type="date"
                       value={st.startDate}

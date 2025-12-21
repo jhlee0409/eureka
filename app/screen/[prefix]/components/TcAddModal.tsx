@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { TestCase, QAPriority, QAPosition, IssueType, WbsTask } from '../../../types';
 import { TEAM_MEMBERS } from '../hooks/useScreenData';
 import { collectDeviceInfo, formatDeviceInfoString, AUTO_COLLECTIBLE_ITEMS, DeviceInfo } from '../../../utils/deviceInfo';
+import { UserSelect } from '../../../components/ui';
 
 interface TcAddModalProps {
   isOpen: boolean;
@@ -390,23 +391,21 @@ export function TcAddModal({ isOpen, onClose, onAdd, wbsTasks, originScreenId }:
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-[9px] font-bold text-slate-400 uppercase mb-0.5">담당자</label>
-                  <select
+                  <UserSelect
                     value={formData.assignee}
-                    onChange={(e) => setFormData({ ...formData, assignee: e.target.value })}
-                    className="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs font-medium outline-none focus:border-slate-500"
-                  >
-                    {TEAM_MEMBERS.map(m => <option key={m} value={m}>{m}</option>)}
-                  </select>
+                    onChange={(v) => setFormData({ ...formData, assignee: v })}
+                    options={TEAM_MEMBERS}
+                    size="sm"
+                  />
                 </div>
                 <div>
                   <label className="block text-[9px] font-bold text-slate-400 uppercase mb-0.5">보고자</label>
-                  <select
+                  <UserSelect
                     value={formData.reporter}
-                    onChange={(e) => setFormData({ ...formData, reporter: e.target.value })}
-                    className="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs font-medium outline-none focus:border-slate-500"
-                  >
-                    {TEAM_MEMBERS.map(m => <option key={m} value={m}>{m}</option>)}
-                  </select>
+                    onChange={(v) => setFormData({ ...formData, reporter: v })}
+                    options={TEAM_MEMBERS}
+                    size="sm"
+                  />
                 </div>
               </div>
 

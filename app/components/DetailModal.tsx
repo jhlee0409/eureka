@@ -3,6 +3,13 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { PrefixGroup, ScreenData, WbsTask, TestCase, WbsStatus, QAStatus, QAProgress, QAPriority, QAPosition, Comment } from '../types';
 import { CoverThumbnail } from './CoverThumbnail';
+import { StatusSelect, UserSelect } from './ui';
+
+const WBS_STATUS_OPTIONS = ['Planning', 'In Progress', 'Done'] as const;
+const QA_STATUS_OPTIONS = ['Reviewing', 'DevError', 'ProdError', 'DevDone', 'ProdDone', 'Hold'] as const;
+const QA_PROGRESS_OPTIONS = ['Waiting', 'Checking', 'Working', 'DevDeployed', 'ProdDeployed'] as const;
+const PRIORITY_OPTIONS = ['High', 'Medium', 'Low'] as const;
+const POSITION_OPTIONS = ['Front-end', 'Back-end', 'Design', 'PM'] as const;
 
 interface DetailModalProps {
   group: PrefixGroup;
@@ -615,9 +622,12 @@ const DetailModal: React.FC<DetailModalProps> = ({ group, onClose }) => {
                               {isMasterView ? (
                                 <span className="font-black text-slate-900 text-xs">{task.assignee}</span>
                               ) : (
-                                <select value={task.assignee} onChange={e => updateWbsTask(task.id, {assignee: e.target.value})} className="bg-transparent font-black text-slate-900 text-xs outline-none cursor-pointer">
-                                  {TEAM_MEMBERS.map(m => <option key={m}>{m}</option>)}
-                                </select>
+                                <UserSelect
+                                  value={task.assignee}
+                                  onChange={(v) => updateWbsTask(task.id, {assignee: v})}
+                                  options={TEAM_MEMBERS}
+                                  size="xs"
+                                />
                               )}
                             </td>
                             <td className="px-8 py-5">
@@ -653,11 +663,13 @@ const DetailModal: React.FC<DetailModalProps> = ({ group, onClose }) => {
                                   {task.status === 'Planning' ? '대기' : task.status === 'In Progress' ? '진행중' : '완료'}
                                 </span>
                               ) : (
-                                <select value={task.status} onChange={e => updateWbsTask(task.id, {status: e.target.value as WbsStatus})} className="bg-transparent font-black text-slate-900 text-xs outline-none uppercase">
-                                  <option value="Planning">대기</option>
-                                  <option value="In Progress">진행중</option>
-                                  <option value="Done">완료</option>
-                                </select>
+                                <StatusSelect
+                                  value={task.status}
+                                  onChange={(v) => updateWbsTask(task.id, {status: v as WbsStatus})}
+                                  options={WBS_STATUS_OPTIONS}
+                                  size="xs"
+                                  variant="badge"
+                                />
                               )}
                             </td>
                             {!isMasterView && (
@@ -804,50 +816,61 @@ const DetailModal: React.FC<DetailModalProps> = ({ group, onClose }) => {
                   <div className="grid grid-cols-2 gap-6 bg-slate-100 p-8 rounded-[2.5rem] border border-slate-200">
                     <div className="space-y-2">
                        <label className="text-[9px] font-black text-slate-500 uppercase block">상태 (TC)</label>
-                       <select value={editingQA.status} onChange={e => updateTestCase(editingQA.id, {status: e.target.value as QAStatus})} className="w-full bg-white px-4 py-3 rounded-2xl text-[11px] font-black border border-slate-300 outline-none shadow-sm">
-                          <option value="Reviewing">검토중</option>
-                          <option value="DevError">Dev 오류</option>
-                          <option value="ProdError">Prod 오류</option>
-                          <option value="DevDone">Dev 완료</option>
-                          <option value="ProdDone">Prod 완료</option>
-                          <option value="Hold">보류</option>
-                       </select>
+                       <StatusSelect
+                         value={editingQA.status}
+                         onChange={(v) => updateTestCase(editingQA.id, {status: v as QAStatus})}
+                         options={QA_STATUS_OPTIONS}
+                         size="sm"
+                         variant="badge"
+                       />
                     </div>
                     <div className="space-y-2">
                        <label className="text-[9px] font-black text-slate-500 uppercase block">진행도 (담당자)</label>
-                       <select value={editingQA.progress} onChange={e => updateTestCase(editingQA.id, {progress: e.target.value as QAProgress})} className="w-full bg-white px-4 py-3 rounded-2xl text-[11px] font-black border border-slate-300 outline-none shadow-sm">
-                          <option value="Waiting">대기</option>
-                          <option value="Checking">확인</option>
-                          <option value="Working">작업 중</option>
-                          <option value="DevDeployed">Dev 배포</option>
-                          <option value="ProdDeployed">Prod 배포</option>
-                       </select>
+                       <StatusSelect
+                         value={editingQA.progress}
+                         onChange={(v) => updateTestCase(editingQA.id, {progress: v as QAProgress})}
+                         options={QA_PROGRESS_OPTIONS}
+                         size="sm"
+                         variant="badge"
+                       />
                     </div>
                     <div className="space-y-2">
                        <label className="text-[9px] font-black text-slate-500 uppercase block">중요도</label>
-                       <select value={editingQA.priority} onChange={e => updateTestCase(editingQA.id, {priority: e.target.value as QAPriority})} className={`w-full px-4 py-3 rounded-2xl text-[11px] font-black border outline-none uppercase shadow-sm ${editingQA.priority === 'High' ? 'bg-red-600 text-white border-red-700' : 'bg-white text-slate-900 border-slate-300'}`}>
-                          <option value="High">높음</option>
-                          <option value="Medium">중간</option>
-                          <option value="Low">낮음</option>
-                       </select>
+                       <StatusSelect
+                         value={editingQA.priority}
+                         onChange={(v) => updateTestCase(editingQA.id, {priority: v as QAPriority})}
+                         options={PRIORITY_OPTIONS}
+                         size="sm"
+                         variant="badge"
+                       />
                     </div>
                     <div className="space-y-2">
                        <label className="text-[9px] font-black text-slate-500 uppercase block">구분</label>
-                       <select value={editingQA.position} onChange={e => updateTestCase(editingQA.id, {position: e.target.value as QAPosition})} className="w-full bg-white px-4 py-3 rounded-2xl text-[11px] font-black border border-slate-300 outline-none uppercase shadow-sm">
-                          {['Front-end', 'Back-end', 'Design', 'PM'].map(pos => <option key={pos}>{pos}</option>)}
-                       </select>
+                       <StatusSelect
+                         value={editingQA.position}
+                         onChange={(v) => updateTestCase(editingQA.id, {position: v as QAPosition})}
+                         options={POSITION_OPTIONS}
+                         size="sm"
+                         variant="badge"
+                       />
                     </div>
                     <div className="space-y-2">
                        <label className="text-[9px] font-black text-slate-500 uppercase block">담당자</label>
-                       <select value={editingQA.assignee} onChange={e => updateTestCase(editingQA.id, {assignee: e.target.value})} className="w-full bg-white px-4 py-3 rounded-2xl text-[11px] font-black border border-slate-300 outline-none uppercase shadow-sm">
-                          {TEAM_MEMBERS.map(m => <option key={m}>{m}</option>)}
-                       </select>
+                       <UserSelect
+                         value={editingQA.assignee}
+                         onChange={(v) => updateTestCase(editingQA.id, {assignee: v})}
+                         options={TEAM_MEMBERS}
+                         size="sm"
+                       />
                     </div>
                     <div className="space-y-2">
                        <label className="text-[9px] font-black text-slate-500 uppercase block">보고자</label>
-                       <select value={editingQA.reporter} onChange={e => updateTestCase(editingQA.id, {reporter: e.target.value})} className="w-full bg-white px-4 py-3 rounded-2xl text-[11px] font-black border border-slate-300 outline-none uppercase shadow-sm">
-                          {TEAM_MEMBERS.map(m => <option key={m}>{m}</option>)}
-                       </select>
+                       <UserSelect
+                         value={editingQA.reporter}
+                         onChange={(v) => updateTestCase(editingQA.id, {reporter: v})}
+                         options={TEAM_MEMBERS}
+                         size="sm"
+                       />
                     </div>
                     <div className="col-span-2 space-y-2">
                        <label className="text-[9px] font-black text-slate-500 uppercase block">등록일</label>
@@ -915,9 +938,12 @@ const DetailModal: React.FC<DetailModalProps> = ({ group, onClose }) => {
                     <div className="bg-slate-50 p-8 rounded-[3rem] border border-slate-200 space-y-6 shadow-sm">
                        <div className="flex items-center justify-between">
                          <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">댓글 작성자:</span>
-                         <select value={selectedCommentUser} onChange={e => setSelectedCommentUser(e.target.value)} className="bg-transparent text-xs font-black text-slate-900 outline-none uppercase">
-                           {TEAM_MEMBERS.map(m => <option key={m}>{m}</option>)}
-                         </select>
+                         <UserSelect
+                           value={selectedCommentUser}
+                           onChange={setSelectedCommentUser}
+                           options={TEAM_MEMBERS}
+                           size="xs"
+                         />
                        </div>
                        <div className="flex gap-4">
                          <input

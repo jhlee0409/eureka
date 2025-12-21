@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { WbsTask, TestCase, QAProgress } from '../../types';
+import { UserSelect } from '../../components/ui';
 
 const TEAM_MEMBERS = ['테스', '잭', '멜러리', '이리나', '미쉘', '션', '키요'];
 
@@ -98,13 +99,12 @@ export default function DeveloperDashboard() {
 
         <div className="flex items-center gap-3">
           <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wide">현재 사용자:</span>
-          <select
+          <UserSelect
             value={currentUser}
-            onChange={(e) => setCurrentUser(e.target.value)}
-            className="bg-slate-800 text-white px-2.5 py-1 rounded-lg text-[10px] font-bold border border-slate-700 outline-none"
-          >
-            {TEAM_MEMBERS.map(m => <option key={m} value={m}>{m}</option>)}
-          </select>
+            onChange={setCurrentUser}
+            options={TEAM_MEMBERS}
+            size="xs"
+          />
         </div>
       </header>
 

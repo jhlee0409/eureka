@@ -3,6 +3,9 @@
 import React, { useState, useMemo } from 'react';
 import { TestCase, QAStatus, QAProgress, QAPriority, Comment, ActivityLog, VerificationItem, RejectReason, DeployEnv } from '../../../types';
 import { TEAM_MEMBERS } from '../hooks/useScreenData';
+import { UserSelect, StatusSelect } from '../../../components/ui';
+
+const REJECT_REASON_OPTIONS = ['not_reproducible', 'working_as_designed', 'duplicate', 'insufficient_info', 'out_of_scope'] as const;
 
 interface ExpandableTestCaseCardProps {
   tc: TestCase;
@@ -283,21 +286,19 @@ export function ExpandableTestCaseCard({
         </span>
 
         {/* 담당자 (빠른 변경) */}
-        <div className="shrink-0 w-14" onClick={e => e.stopPropagation()}>
+        <div className="shrink-0" onClick={e => e.stopPropagation()}>
           {isMasterView ? (
             <span className="text-[10px] font-medium text-slate-600">{tc.assignee}</span>
           ) : (
-            <select
+            <UserSelect
               value={tc.assignee}
-              onChange={handleAssigneeChange}
-              className="text-[10px] font-medium text-slate-600 bg-transparent border border-slate-200 rounded px-1 py-0.5 outline-none cursor-pointer hover:border-slate-400 w-full"
-            >
-              {TEAM_MEMBERS.map(m => (
-                <option key={m} value={m}>
-                  {m}
-                </option>
-              ))}
-            </select>
+              onChange={(v) => {
+                updateTestCase(tc.id, { assignee: v });
+                addActivityLog('assigned');
+              }}
+              options={TEAM_MEMBERS}
+              size="xs"
+            />
           )}
         </div>
 
@@ -496,17 +497,12 @@ export function ExpandableTestCaseCard({
                     {tc.comments.length === 0 && <p className="text-[10px] text-slate-400 text-center py-1">댓글이 없습니다.</p>}
                   </div>
                   <div className="flex gap-1.5">
-                    <select
+                    <UserSelect
                       value={selectedCommentUser}
-                      onChange={e => setSelectedCommentUser(e.target.value)}
-                      className="px-2 py-1 rounded border border-slate-200 text-[10px] font-medium outline-none"
-                    >
-                      {TEAM_MEMBERS.map(m => (
-                        <option key={m} value={m}>
-                          {m}
-                        </option>
-                      ))}
-                    </select>
+                      onChange={setSelectedCommentUser}
+                      options={TEAM_MEMBERS}
+                      size="xs"
+                    />
                     <input
                       value={newComment}
                       onChange={e => setNewComment(e.target.value)}
@@ -795,17 +791,12 @@ export function ExpandableTestCaseCard({
             <h3 className="text-sm font-bold text-slate-900">이슈 반려</h3>
             <div>
               <label className="text-[9px] font-bold text-slate-500 uppercase block mb-1">반려 사유</label>
-              <select
+              <StatusSelect
                 value={rejectReason}
-                onChange={e => setRejectReason(e.target.value as RejectReason)}
-                className="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs font-medium outline-none"
-              >
-                {REJECT_REASONS.map(r => (
-                  <option key={r.key} value={r.key}>
-                    {r.label}
-                  </option>
-                ))}
-              </select>
+                onChange={(v) => setRejectReason(v as RejectReason)}
+                options={REJECT_REASON_OPTIONS}
+                size="sm"
+              />
             </div>
             <div>
               <label className="text-[9px] font-bold text-slate-500 uppercase block mb-1">상세 설명 (선택)</label>
