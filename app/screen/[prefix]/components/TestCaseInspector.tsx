@@ -3,6 +3,12 @@
 import React, { useState, useMemo } from 'react';
 import { TestCase, QAStatus, QAProgress, QAPriority, QAPosition, Comment, ActivityLog, VerificationItem, RejectReason, DeployEnv } from '../../../types';
 import { TEAM_MEMBERS } from '../hooks/useScreenData';
+import { StatusSelect, UserSelect } from '../../../components/ui';
+
+const QA_STATUS_OPTIONS = ['Reviewing', 'DevError', 'ProdError', 'DevDone', 'ProdDone', 'Hold', 'Rejected', 'Duplicate'] as const;
+const QA_PROGRESS_OPTIONS = ['Waiting', 'Checking', 'Working', 'DevDeployed', 'ProdDeployed'] as const;
+const PRIORITY_OPTIONS = ['High', 'Medium', 'Low'] as const;
+const POSITION_OPTIONS = ['Front-end', 'Back-end', 'Design', 'PM'] as const;
 
 interface TestCaseInspectorProps {
   testCase: TestCase;
@@ -230,76 +236,58 @@ export function TestCaseInspector({
         <div className="grid grid-cols-2 gap-6 bg-slate-100 p-8 rounded-[2.5rem] border border-slate-200">
           <div className="space-y-2">
             <label className="text-[9px] font-black text-slate-500 uppercase block">상태 (TC)</label>
-            <select
+            <StatusSelect
               value={testCase.status}
-              onChange={e => updateTestCase(testCase.id, { status: e.target.value as QAStatus })}
-              className="w-full bg-white px-4 py-3 rounded-2xl text-[11px] font-black border border-slate-300 outline-none shadow-sm"
-            >
-              <option value="Reviewing">검토중</option>
-              <option value="DevError">Dev 오류</option>
-              <option value="ProdError">Prod 오류</option>
-              <option value="DevDone">Dev 완료</option>
-              <option value="ProdDone">Prod 완료</option>
-              <option value="Hold">보류</option>
-            </select>
+              onChange={(v) => updateTestCase(testCase.id, { status: v as QAStatus })}
+              options={QA_STATUS_OPTIONS}
+              size="md"
+            />
           </div>
           <div className="space-y-2">
             <label className="text-[9px] font-black text-slate-500 uppercase block">진행도 (담당자)</label>
-            <select
+            <StatusSelect
               value={testCase.progress}
-              onChange={e => updateTestCase(testCase.id, { progress: e.target.value as QAProgress })}
-              className="w-full bg-white px-4 py-3 rounded-2xl text-[11px] font-black border border-slate-300 outline-none shadow-sm"
-            >
-              <option value="Waiting">대기</option>
-              <option value="Checking">확인</option>
-              <option value="Working">작업 중</option>
-              <option value="DevDeployed">Dev 배포</option>
-              <option value="ProdDeployed">Prod 배포</option>
-            </select>
+              onChange={(v) => updateTestCase(testCase.id, { progress: v as QAProgress })}
+              options={QA_PROGRESS_OPTIONS}
+              size="md"
+            />
           </div>
           <div className="space-y-2">
             <label className="text-[9px] font-black text-slate-500 uppercase block">중요도</label>
-            <select
+            <StatusSelect
               value={testCase.priority}
-              onChange={e => updateTestCase(testCase.id, { priority: e.target.value as QAPriority })}
-              className={`w-full px-4 py-3 rounded-2xl text-[11px] font-black border outline-none uppercase shadow-sm ${
-                testCase.priority === 'High' ? 'bg-red-600 text-white border-red-700' : 'bg-white text-slate-900 border-slate-300'
-              }`}
-            >
-              <option value="High">높음</option>
-              <option value="Medium">중간</option>
-              <option value="Low">낮음</option>
-            </select>
+              onChange={(v) => updateTestCase(testCase.id, { priority: v as QAPriority })}
+              options={PRIORITY_OPTIONS}
+              size="md"
+              variant="badge"
+            />
           </div>
           <div className="space-y-2">
             <label className="text-[9px] font-black text-slate-500 uppercase block">구분</label>
-            <select
+            <StatusSelect
               value={testCase.position}
-              onChange={e => updateTestCase(testCase.id, { position: e.target.value as QAPosition })}
-              className="w-full bg-white px-4 py-3 rounded-2xl text-[11px] font-black border border-slate-300 outline-none uppercase shadow-sm"
-            >
-              {['Front-end', 'Back-end', 'Design', 'PM'].map(pos => <option key={pos}>{pos}</option>)}
-            </select>
+              onChange={(v) => updateTestCase(testCase.id, { position: v as QAPosition })}
+              options={POSITION_OPTIONS}
+              size="md"
+            />
           </div>
           <div className="space-y-2">
             <label className="text-[9px] font-black text-slate-500 uppercase block">담당자</label>
-            <select
+            <UserSelect
               value={testCase.assignee}
-              onChange={e => updateTestCase(testCase.id, { assignee: e.target.value })}
-              className="w-full bg-white px-4 py-3 rounded-2xl text-[11px] font-black border border-slate-300 outline-none uppercase shadow-sm"
-            >
-              {TEAM_MEMBERS.map(m => <option key={m}>{m}</option>)}
-            </select>
+              onChange={(v) => updateTestCase(testCase.id, { assignee: v })}
+              options={TEAM_MEMBERS}
+              size="md"
+            />
           </div>
           <div className="space-y-2">
             <label className="text-[9px] font-black text-slate-500 uppercase block">보고자</label>
-            <select
+            <UserSelect
               value={testCase.reporter}
-              onChange={e => updateTestCase(testCase.id, { reporter: e.target.value })}
-              className="w-full bg-white px-4 py-3 rounded-2xl text-[11px] font-black border border-slate-300 outline-none uppercase shadow-sm"
-            >
-              {TEAM_MEMBERS.map(m => <option key={m}>{m}</option>)}
-            </select>
+              onChange={(v) => updateTestCase(testCase.id, { reporter: v })}
+              options={TEAM_MEMBERS}
+              size="md"
+            />
           </div>
           <div className="col-span-2 space-y-2">
             <label className="text-[9px] font-black text-slate-500 uppercase block">등록일</label>
@@ -374,13 +362,12 @@ export function TestCaseInspector({
           <div className="bg-slate-50 p-8 rounded-[3rem] border border-slate-200 space-y-6 shadow-sm">
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">댓글 작성자:</span>
-              <select
+              <UserSelect
                 value={selectedCommentUser}
-                onChange={e => setSelectedCommentUser(e.target.value)}
-                className="bg-transparent text-xs font-black text-slate-900 outline-none uppercase"
-              >
-                {TEAM_MEMBERS.map(m => <option key={m}>{m}</option>)}
-              </select>
+                onChange={setSelectedCommentUser}
+                options={TEAM_MEMBERS}
+                size="sm"
+              />
             </div>
             <div className="flex gap-4">
               <input

@@ -3,6 +3,9 @@
 import React from 'react';
 import { WbsTask, WbsStatus } from '../../../types';
 import { TEAM_MEMBERS } from '../hooks/useScreenData';
+import { StatusSelect, UserSelect } from '../../../components/ui';
+
+const WBS_STATUS_OPTIONS = ['Planning', 'In Progress', 'Done'] as const;
 
 interface WbsTableProps {
   wbsTasks: WbsTask[];
@@ -67,17 +70,13 @@ export function WbsTable({
                 )}
               </td>
               <td className="px-3 py-2">
-                {isMasterView ? (
-                  <span className="font-bold text-slate-700 text-[10px]">{task.assignee}</span>
-                ) : (
-                  <select
-                    value={task.assignee}
-                    onChange={e => updateWbsTask(task.id, { assignee: e.target.value })}
-                    className="bg-transparent font-bold text-slate-700 text-[10px] outline-none cursor-pointer"
-                  >
-                    {TEAM_MEMBERS.map(m => <option key={m}>{m}</option>)}
-                  </select>
-                )}
+                <UserSelect
+                  value={task.assignee}
+                  onChange={(v) => updateWbsTask(task.id, { assignee: v })}
+                  options={TEAM_MEMBERS}
+                  size="xs"
+                  disabled={isMasterView}
+                />
               </td>
               <td className="px-3 py-2">
                 {isMasterView ? (
@@ -103,25 +102,14 @@ export function WbsTable({
                 )}
               </td>
               <td className="px-3 py-2">
-                {isMasterView ? (
-                  <span className={`inline-block px-2 py-0.5 rounded text-[9px] font-bold ${
-                    task.status === 'Done' ? 'bg-green-100 text-green-700' :
-                    task.status === 'In Progress' ? 'bg-blue-100 text-blue-700' :
-                    'bg-slate-100 text-slate-600'
-                  }`}>
-                    {task.status === 'Planning' ? '대기' : task.status === 'In Progress' ? '진행중' : '완료'}
-                  </span>
-                ) : (
-                  <select
-                    value={task.status}
-                    onChange={e => updateWbsTask(task.id, { status: e.target.value as WbsStatus })}
-                    className="bg-transparent font-bold text-slate-700 text-[10px] outline-none"
-                  >
-                    <option value="Planning">대기</option>
-                    <option value="In Progress">진행중</option>
-                    <option value="Done">완료</option>
-                  </select>
-                )}
+                <StatusSelect
+                  value={task.status}
+                  onChange={(v) => updateWbsTask(task.id, { status: v as WbsStatus })}
+                  options={WBS_STATUS_OPTIONS}
+                  size="xs"
+                  variant={isMasterView ? 'badge' : 'default'}
+                  disabled={isMasterView}
+                />
               </td>
               {!isMasterView && (
                 <td className="px-3 py-2 text-right">
