@@ -102,6 +102,7 @@ export function WbsTab({
           />
           <WbsTable
             wbsTasks={wbsTasks}
+            testCases={testCases}
             isMasterView={isMasterView}
             getScreenNameById={getScreenNameById}
             updateWbsTask={updateWbsTask}

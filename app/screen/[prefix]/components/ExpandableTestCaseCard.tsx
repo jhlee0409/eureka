@@ -1,11 +1,18 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { TestCase, QAStatus, QAProgress, QAPriority, Comment, ActivityLog, VerificationItem, RejectReason, DeployEnv } from '../../../types';
+import { TestCase, QAStatus, QAProgress, QAPriority, Comment, ActivityLog, VerificationItem, RejectReason, DeployEnv, IssueType } from '../../../types';
 import { TEAM_MEMBERS } from '../hooks/useScreenData';
 import { UserSelect, StatusSelect } from '../../../components/ui';
 
 const REJECT_REASON_OPTIONS = ['not_reproducible', 'working_as_designed', 'duplicate', 'insufficient_info', 'out_of_scope'] as const;
+
+const ISSUE_TYPE_CONFIG: Record<IssueType, { label: string; icon: string; color: string }> = {
+  bug: { label: '버그', icon: '🐛', color: 'bg-red-100 text-red-700 border-red-200' },
+  improvement: { label: '개선', icon: '✨', color: 'bg-blue-100 text-blue-700 border-blue-200' },
+  question: { label: '문의', icon: '❓', color: 'bg-yellow-100 text-yellow-700 border-yellow-200' },
+  task: { label: '작업', icon: '📋', color: 'bg-green-100 text-green-700 border-green-200' },
+};
 
 interface ExpandableTestCaseCardProps {
   tc: TestCase;
@@ -258,6 +265,13 @@ export function ExpandableTestCaseCard({
           }`}
           title={tc.priority}
         />
+
+        {/* 이슈 타입 */}
+        {tc.issueType && ISSUE_TYPE_CONFIG[tc.issueType] && (
+          <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border shrink-0 ${ISSUE_TYPE_CONFIG[tc.issueType].color}`}>
+            {ISSUE_TYPE_CONFIG[tc.issueType].icon} {ISSUE_TYPE_CONFIG[tc.issueType].label}
+          </span>
+        )}
 
         {/* 체크포인트 */}
         <div className="w-16 shrink-0">
