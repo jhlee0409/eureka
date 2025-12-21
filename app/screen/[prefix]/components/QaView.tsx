@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { TestCase, QAStatus, QAPriority, QAPosition } from '../../../types';
-import { TEAM_MEMBERS } from '../hooks/useScreenData';
+import { TEAM_MEMBERS, STATUS_ORDER, STATUS_CONFIG } from '../config/constants';
 
 interface QaViewProps {
   testCases: TestCase[];
@@ -13,19 +13,6 @@ interface QaViewProps {
   getScreenNameById: (figmaId: string | undefined) => string;
   originScreenId?: string;
 }
-
-const STATUS_ORDER: QAStatus[] = ['DevError', 'ProdError', 'Reviewing', 'Rejected', 'Hold', 'Duplicate', 'DevDone', 'ProdDone'];
-
-const STATUS_CONFIG: Record<QAStatus, { label: string; color: string; bgColor: string }> = {
-  'Reviewing': { label: '검토중', color: 'text-yellow-700', bgColor: 'bg-yellow-50 border-yellow-200' },
-  'DevError': { label: 'Dev 오류', color: 'text-red-700', bgColor: 'bg-red-50 border-red-200' },
-  'ProdError': { label: 'Prod 오류', color: 'text-red-700', bgColor: 'bg-red-50 border-red-200' },
-  'DevDone': { label: 'Dev 완료', color: 'text-green-700', bgColor: 'bg-green-50 border-green-200' },
-  'ProdDone': { label: 'Prod 완료', color: 'text-emerald-700', bgColor: 'bg-emerald-50 border-emerald-200' },
-  'Hold': { label: '보류', color: 'text-orange-700', bgColor: 'bg-orange-50 border-orange-200' },
-  'Rejected': { label: '반려', color: 'text-gray-700', bgColor: 'bg-gray-50 border-gray-200' },
-  'Duplicate': { label: '중복', color: 'text-purple-700', bgColor: 'bg-purple-50 border-purple-200' },
-};
 
 export function QaView({
   testCases,

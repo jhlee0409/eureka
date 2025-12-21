@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { WbsTask, TestCase, WbsStatus, QAProgress } from '../../../types';
-import { TEAM_MEMBERS } from '../hooks/useScreenData';
+import { TEAM_MEMBERS, PROGRESS_STEPS } from '../config/constants';
 
 interface DeveloperViewProps {
   wbsTasks: WbsTask[];
@@ -13,14 +13,6 @@ interface DeveloperViewProps {
   updateTestCase: (id: string, updates: Partial<TestCase>) => void;
   isMasterView: boolean;
 }
-
-const PROGRESS_STEPS: { key: QAProgress; label: string }[] = [
-  { key: 'Waiting', label: '대기' },
-  { key: 'Checking', label: '확인' },
-  { key: 'Working', label: '작업중' },
-  { key: 'DevDeployed', label: 'Dev배포' },
-  { key: 'ProdDeployed', label: 'Prod배포' },
-];
 
 export function DeveloperView({
   wbsTasks,
