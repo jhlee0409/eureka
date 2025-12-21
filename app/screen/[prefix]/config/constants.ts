@@ -37,15 +37,27 @@ export const PROGRESS_STEPS: { key: QAProgress; label: string }[] = [
   { key: 'ProdDeployed', label: 'Prod배포' },
 ];
 
-// View Modes
+// Unified Tab Types (replaces separate ViewMode and TabType)
+export const UNIFIED_TABS = ['wbs', 'qa', 'developer'] as const;
+export type UnifiedTab = typeof UNIFIED_TABS[number];
+
+export const UNIFIED_TAB_CONFIG: Record<UnifiedTab, { label: string; icon: string }> = {
+  'wbs': { label: '기획/WBS', icon: '📋' },
+  'qa': { label: 'QA 테스트', icon: '🧪' },
+  'developer': { label: '담당자 현황', icon: '👤' },
+};
+
+// Legacy types (for backward compatibility during migration)
 export const VIEW_MODES = ['standard', 'developer', 'qa'] as const;
 export type ViewMode = typeof VIEW_MODES[number];
-
-// Tab Types
 export const TAB_TYPES = ['wbs', 'qa'] as const;
 export type TabType = typeof TAB_TYPES[number];
 
 // Validation helpers
+export function isValidUnifiedTab(value: string | null): value is UnifiedTab {
+  return value !== null && UNIFIED_TABS.includes(value as UnifiedTab);
+}
+
 export function isValidViewMode(value: string | null): value is ViewMode {
   return value !== null && VIEW_MODES.includes(value as ViewMode);
 }

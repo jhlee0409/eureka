@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useState, useMemo, useEffect, useCallback, ReactNode } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { PrefixGroup, ScreenData, WbsTask, TestCase } from '../../../types';
-import { ViewMode, TabType, isValidViewMode, isValidTabType, TEAM_MEMBERS } from '../config/constants';
+import { UnifiedTab, isValidUnifiedTab, TEAM_MEMBERS } from '../config/constants';
 
 // ============================================
 // Types
@@ -17,11 +17,13 @@ interface ScreenContextValue {
   setActiveScreenId: (id: string | null) => void;
   isMasterView: boolean;
 
-  // Navigation
-  activeTab: TabType;
-  setActiveTab: (tab: TabType) => void;
-  viewMode: ViewMode;
-  setViewMode: (mode: ViewMode) => void;
+  // Navigation (Unified Tab)
+  activeTab: UnifiedTab;
+  setActiveTab: (tab: UnifiedTab) => void;
+
+  // Spec Panel
+  isSpecPanelOpen: boolean;
+  toggleSpecPanel: () => void;
 
   // User
   currentUser: string;
@@ -65,15 +67,18 @@ export function ScreenProvider({ children }: ScreenProviderProps) {
   const prefix = params.prefix as string;
   const screenIdParam = searchParams.get('screen');
   const tabParam = searchParams.get('tab');
-  const viewParam = searchParams.get('view');
 
   // Core State
   const [group, setGroup] = useState<PrefixGroup | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [activeScreenId, setActiveScreenId] = useState<string | null>(screenIdParam);
-  const [activeTab, setActiveTab] = useState<TabType>(isValidTabType(tabParam) ? tabParam : 'wbs');
-  const [viewMode, setViewMode] = useState<ViewMode>(isValidViewMode(viewParam) ? viewParam : 'standard');
+  const [activeTab, setActiveTab] = useState<UnifiedTab>(isValidUnifiedTab(tabParam) ? tabParam : 'wbs');
   const [currentUser, setCurrentUser] = useState<string>(TEAM_MEMBERS[0]);
+  const [isSpecPanelOpen, setIsSpecPanelOpen] = useState(false);
+
+  const toggleSpecPanel = useCallback(() => {
+    setIsSpecPanelOpen(prev => !prev);
+  }, []);
 
   // Data State
   const [wbsTasks, setWbsTasks] = useState<WbsTask[]>([]);
@@ -147,12 +152,11 @@ export function ScreenProvider({ children }: ScreenProviderProps) {
     const params = new URLSearchParams();
     if (activeScreenId) params.set('screen', activeScreenId);
     if (activeTab !== 'wbs') params.set('tab', activeTab);
-    if (viewMode !== 'standard') params.set('view', viewMode);
 
     const queryString = params.toString();
     const newUrl = queryString ? `?${queryString}` : '';
     window.history.replaceState(null, '', `/screen/${prefix}${newUrl}`);
-  }, [activeScreenId, activeTab, viewMode, prefix]);
+  }, [activeScreenId, activeTab, prefix]);
 
   // Storage Helper
   const saveToStorage = useCallback((tasks: WbsTask[], cases: TestCase[]) => {
@@ -248,8 +252,8 @@ export function ScreenProvider({ children }: ScreenProviderProps) {
     isMasterView,
     activeTab,
     setActiveTab,
-    viewMode,
-    setViewMode,
+    isSpecPanelOpen,
+    toggleSpecPanel,
     currentUser,
     setCurrentUser,
     wbsTasks,

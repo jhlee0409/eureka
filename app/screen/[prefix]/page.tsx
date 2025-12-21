@@ -4,12 +4,10 @@ import React from 'react';
 import { ScreenData } from '../../types';
 import { ScreenProvider, useScreen } from './context/ScreenContext';
 import { ScreenHeader } from './components/ScreenHeader';
-import { ScreenSidebar } from './components/ScreenSidebar';
-import { ContentTabs } from './components/ContentTabs';
 import { WbsTab } from './components/WbsTab';
 import { QaTab } from './components/QaTab';
 import { DeveloperView } from './components/DeveloperView';
-import { QaView } from './components/QaView';
+import { UnifiedTab } from './config/constants';
 
 // ============================================
 // Main Page Component
@@ -29,7 +27,6 @@ function ScreenContent() {
   const {
     group,
     isLoading,
-    viewMode,
     activeTab,
     activeScreen,
     isMasterView,
@@ -50,17 +47,8 @@ function ScreenContent() {
     <div className="min-h-screen flex flex-col bg-white text-slate-900">
       <ScreenHeader />
 
-      <div className="flex-1 flex overflow-hidden bg-slate-100">
-        {viewMode === 'standard' && (
-          <ScreenSidebar
-            activeScreen={activeScreen}
-            allScreens={Object.values(group.baseIds).flat()}
-            isMasterView={isMasterView}
-          />
-        )}
-
+      <div className="flex-1 flex overflow-hidden bg-slate-50">
         <MainContent
-          viewMode={viewMode}
           activeTab={activeTab}
           activeScreen={activeScreen}
           isMasterView={isMasterView}
@@ -74,13 +62,12 @@ function ScreenContent() {
 // Main Content Area
 // ============================================
 interface MainContentProps {
-  viewMode: 'standard' | 'developer' | 'qa';
-  activeTab: 'wbs' | 'qa';
+  activeTab: UnifiedTab;
   activeScreen: ScreenData | null;
   isMasterView: boolean;
 }
 
-function MainContent({ viewMode, activeTab, activeScreen, isMasterView }: MainContentProps) {
+function MainContent({ activeTab, activeScreen, isMasterView }: MainContentProps) {
   const {
     wbsTasks,
     testCases,
@@ -96,42 +83,35 @@ function MainContent({ viewMode, activeTab, activeScreen, isMasterView }: MainCo
     getScreenNameById,
   } = useScreen();
 
-  const contentClass = viewMode === 'standard' ? 'w-[65%]' : 'w-full';
-
   return (
-    <div className={`${contentClass} flex flex-col bg-white overflow-hidden relative shadow-lg`}>
-      {viewMode === 'standard' ? (
-        <>
-          <ContentTabs />
-          <div className="flex-1 overflow-y-auto custom-scrollbar p-6 bg-white">
-            {activeTab === 'wbs' ? (
-              <WbsTab
-                wbsTasks={wbsTasks}
-                testCases={testCases}
-                isMasterView={isMasterView}
-                activeScreen={activeScreen}
-                getScreenNameById={getScreenNameById}
-                updateWbsTask={updateWbsTask}
-                deleteWbsTask={deleteWbsTask}
-                addWbsTask={addWbsTask}
-              />
-            ) : (
-              <QaTab
-                testCases={testCases}
-                wbsTasks={wbsTasks}
-                isMasterView={isMasterView}
-                qaProgress={qaProgress}
-                getScreenNameById={getScreenNameById}
-                updateTestCase={updateTestCase}
-                deleteTestCase={deleteTestCase}
-                addTestCase={addTestCase}
-                originScreenId={activeScreen?.figmaId || ''}
-              />
-            )}
-          </div>
-        </>
-      ) : viewMode === 'developer' ? (
-        <div className="flex-1 overflow-y-auto custom-scrollbar p-6 bg-slate-50">
+    <div className="w-full flex flex-col bg-white overflow-hidden">
+      <div className="flex-1 overflow-y-auto custom-scrollbar p-6">
+        {activeTab === 'wbs' && (
+          <WbsTab
+            wbsTasks={wbsTasks}
+            testCases={testCases}
+            isMasterView={isMasterView}
+            activeScreen={activeScreen}
+            getScreenNameById={getScreenNameById}
+            updateWbsTask={updateWbsTask}
+            deleteWbsTask={deleteWbsTask}
+            addWbsTask={addWbsTask}
+          />
+        )}
+        {activeTab === 'qa' && (
+          <QaTab
+            testCases={testCases}
+            wbsTasks={wbsTasks}
+            isMasterView={isMasterView}
+            qaProgress={qaProgress}
+            getScreenNameById={getScreenNameById}
+            updateTestCase={updateTestCase}
+            deleteTestCase={deleteTestCase}
+            addTestCase={addTestCase}
+            originScreenId={activeScreen?.figmaId || ''}
+          />
+        )}
+        {activeTab === 'developer' && (
           <DeveloperView
             wbsTasks={wbsTasks}
             testCases={testCases}
@@ -141,20 +121,8 @@ function MainContent({ viewMode, activeTab, activeScreen, isMasterView }: MainCo
             updateTestCase={updateTestCase}
             isMasterView={isMasterView}
           />
-        </div>
-      ) : (
-        <div className="flex-1 overflow-y-auto custom-scrollbar p-6 bg-slate-50">
-          <QaView
-            testCases={testCases}
-            addTestCase={addTestCase}
-            updateTestCase={updateTestCase}
-            deleteTestCase={deleteTestCase}
-            isMasterView={isMasterView}
-            getScreenNameById={getScreenNameById}
-            originScreenId={activeScreen?.figmaId || ''}
-          />
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
