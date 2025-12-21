@@ -1,8 +1,15 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
-import { PrefixGroup, ScreenData, WbsTask, TestCase, WbsStatus, QAStatus, QAPriority, QAPosition, Comment } from '../types';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { PrefixGroup, ScreenData, WbsTask, TestCase, WbsStatus, QAStatus, QAProgress, QAPriority, QAPosition, Comment } from '../types';
 import { CoverThumbnail } from './CoverThumbnail';
+import { StatusSelect, UserSelect } from './ui';
+
+const WBS_STATUS_OPTIONS = ['Planning', 'In Progress', 'Done'] as const;
+const QA_STATUS_OPTIONS = ['Reviewing', 'DevError', 'ProdError', 'DevDone', 'ProdDone', 'Hold'] as const;
+const QA_PROGRESS_OPTIONS = ['Waiting', 'Checking', 'Working', 'DevDeployed', 'ProdDeployed'] as const;
+const PRIORITY_OPTIONS = ['High', 'Medium', 'Low'] as const;
+const POSITION_OPTIONS = ['Front-end', 'Back-end', 'Design', 'PM'] as const;
 
 interface DetailModalProps {
   group: PrefixGroup;
@@ -22,10 +29,30 @@ const DetailModal: React.FC<DetailModalProps> = ({ group, onClose }) => {
   const [newComment, setNewComment] = useState('');
   const [selectedCommentUser, setSelectedCommentUser] = useState(TEAM_MEMBERS[0]);
 
+  // Gantt chart drag state
+  const [dragState, setDragState] = useState<{
+    taskId: string;
+    mode: 'move' | 'resize-start' | 'resize-end';
+    startX: number;
+    originalStart: string;
+    originalEnd: string;
+  } | null>(null);
+  const ganttContainerRef = useRef<HTMLDivElement>(null);
+
   // Flatten all screens from all baseIds
   const allScreens = useMemo(() => {
     return Object.values(group.baseIds).flat();
   }, [group]);
+
+  // Check if we're in 종합 (master) view mode
+  const isMasterView = activeScreenId === null;
+
+  // Helper to get screen name by figmaId
+  const getScreenNameById = (figmaId: string | undefined): string => {
+    if (!figmaId) return '-';
+    const screen = allScreens.find(s => s.figmaId === figmaId);
+    return screen?.name || figmaId;
+  };
 
   // Find active screen or get all screens for 종합
   const activeScreen = useMemo(() => {
@@ -97,8 +124,8 @@ const DetailModal: React.FC<DetailModalProps> = ({ group, onClose }) => {
 
   const qaProgress = useMemo(() => {
     if (testCases.length === 0) return 0;
-    const resolved = testCases.filter(t => t.status === 'Resolved' || t.status === 'Closed').length;
-    return Math.round((resolved / testCases.length) * 100);
+    const done = testCases.filter(t => t.status === 'ProdDone' || t.status === 'DevDone').length;
+    return Math.round((done / testCases.length) * 100);
   }, [testCases]);
 
   const timelineRange = useMemo(() => {
@@ -143,8 +170,19 @@ const DetailModal: React.FC<DetailModalProps> = ({ group, onClose }) => {
 
   const addTestCase = () => {
     const newTC: TestCase = {
-      id: crypto.randomUUID(), scenario: '이슈 발생 확인 필요', issueContent: '', date: new Date().toISOString().split('T')[0],
-      status: 'Open', reporter: TEAM_MEMBERS[0], priority: 'Medium', position: 'Front-end', assignee: TEAM_MEMBERS[1], progress: 0, comments: [],
+      id: crypto.randomUUID(),
+      checkpoint: '',
+      scenario: '이슈 발생 확인 필요',
+      issueContent: '',
+      referenceLink: '',
+      date: new Date().toISOString().split('T')[0],
+      status: 'Reviewing',
+      reporter: TEAM_MEMBERS[0],
+      priority: 'Medium',
+      position: 'Front-end',
+      assignee: TEAM_MEMBERS[1],
+      progress: 'Waiting',
+      comments: [],
       originScreenId: activeScreensForData[0]?.figmaId || ''
     };
     const next = [...testCases, newTC];
@@ -167,6 +205,82 @@ const DetailModal: React.FC<DetailModalProps> = ({ group, onClose }) => {
       setNewComment('');
     }
   };
+
+  // Gantt chart drag handlers
+  const handleGanttMouseDown = useCallback((
+    e: React.MouseEvent,
+    taskId: string,
+    mode: 'move' | 'resize-start' | 'resize-end'
+  ) => {
+    if (isMasterView) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const task = wbsTasks.find(t => t.id === taskId);
+    if (!task) return;
+
+    setDragState({
+      taskId,
+      mode,
+      startX: e.clientX,
+      originalStart: task.startDate,
+      originalEnd: task.endDate
+    });
+  }, [isMasterView, wbsTasks]);
+
+  const handleGanttMouseMove = useCallback((e: MouseEvent) => {
+    if (!dragState || !timelineRange) return;
+
+    const deltaX = e.clientX - dragState.startX;
+    const daysDelta = Math.round(deltaX / 32); // 32px per day
+
+    const task = wbsTasks.find(t => t.id === dragState.taskId);
+    if (!task) return;
+
+    const originalStart = new Date(dragState.originalStart);
+    const originalEnd = new Date(dragState.originalEnd);
+
+    let newStart = new Date(originalStart);
+    let newEnd = new Date(originalEnd);
+
+    if (dragState.mode === 'move') {
+      newStart.setDate(originalStart.getDate() + daysDelta);
+      newEnd.setDate(originalEnd.getDate() + daysDelta);
+    } else if (dragState.mode === 'resize-start') {
+      newStart.setDate(originalStart.getDate() + daysDelta);
+      if (newStart >= newEnd) {
+        newStart = new Date(newEnd);
+        newStart.setDate(newStart.getDate() - 1);
+      }
+    } else if (dragState.mode === 'resize-end') {
+      newEnd.setDate(originalEnd.getDate() + daysDelta);
+      if (newEnd <= newStart) {
+        newEnd = new Date(newStart);
+        newEnd.setDate(newEnd.getDate() + 1);
+      }
+    }
+
+    const formatDate = (d: Date) => d.toISOString().split('T')[0];
+    updateWbsTask(dragState.taskId, {
+      startDate: formatDate(newStart),
+      endDate: formatDate(newEnd)
+    });
+  }, [dragState, timelineRange, wbsTasks, updateWbsTask]);
+
+  const handleGanttMouseUp = useCallback(() => {
+    setDragState(null);
+  }, []);
+
+  // Add/remove global mouse event listeners for dragging
+  useEffect(() => {
+    if (dragState) {
+      window.addEventListener('mousemove', handleGanttMouseMove);
+      window.addEventListener('mouseup', handleGanttMouseUp);
+      return () => {
+        window.removeEventListener('mousemove', handleGanttMouseMove);
+        window.removeEventListener('mouseup', handleGanttMouseUp);
+      };
+    }
+  }, [dragState, handleGanttMouseMove, handleGanttMouseUp]);
 
   const editingQA = useMemo(() => testCases.find(t => t.id === editingQAId), [testCases, editingQAId]);
 
@@ -298,84 +412,281 @@ const DetailModal: React.FC<DetailModalProps> = ({ group, onClose }) => {
                 <div className="flex items-center justify-between">
                   <div>
                     <h2 className="text-3xl font-black text-slate-900 tracking-tighter uppercase leading-none">작업 로드맵</h2>
-                    <p className="text-[10px] text-slate-600 font-bold mt-2 uppercase tracking-widest">{activeScreenId === null ? '전체 화면 통합 보기' : `${activeScreen?.name || ''} 상세 작업`}</p>
+                    <p className="text-[10px] text-slate-600 font-bold mt-2 uppercase tracking-widest">{isMasterView ? '전체 화면 통합 보기 (읽기 전용)' : `${activeScreen?.name || ''} 상세 작업`}</p>
                   </div>
-                  <button onClick={addWbsTask} className="px-6 py-3 bg-slate-900 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-xl hover:bg-black transition-all">+ 업무 추가</button>
+                  {!isMasterView && (
+                    <button onClick={addWbsTask} className="px-6 py-3 bg-slate-900 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-xl hover:bg-black transition-all">+ 업무 추가</button>
+                  )}
                 </div>
 
                 {/* WBS Timeline and Table - reuse existing logic */}
                 {wbsTasks.length === 0 ? (
                   <div className="p-20 text-center border-2 border-dashed border-slate-300 rounded-[3rem] bg-slate-50 text-slate-500 font-black uppercase tracking-widest">업무 데이터가 없습니다.</div>
                 ) : (
+                  <>
+                  {/* Gantt Chart Timeline */}
+                  {timelineRange && (
+                    <div className="bg-white border border-slate-300 rounded-[2.5rem] overflow-hidden shadow-sm mb-8">
+                      <div className="p-6 border-b border-slate-200 bg-slate-50">
+                        <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                          타임라인 차트
+                        </h3>
+                      </div>
+                      <div className="overflow-x-auto">
+                        <div className="min-w-max">
+                          {/* Timeline Header */}
+                          <div className="flex border-b border-slate-200 bg-slate-100">
+                            <div className="w-48 shrink-0 px-4 py-3 border-r border-slate-200">
+                              <span className="text-[10px] font-black text-slate-600 uppercase">작업명</span>
+                            </div>
+                            <div className="flex">
+                              {timelineRange.days.map((day, idx) => {
+                                const isToday = new Date().toDateString() === day.toDateString();
+                                const isWeekend = day.getDay() === 0 || day.getDay() === 6;
+                                const isFirstOfMonth = day.getDate() === 1;
+                                return (
+                                  <div
+                                    key={idx}
+                                    className={`w-8 shrink-0 text-center py-2 border-r border-slate-200 ${isWeekend ? 'bg-slate-200' : ''} ${isToday ? 'bg-yellow-100' : ''}`}
+                                  >
+                                    {isFirstOfMonth && (
+                                      <div className="text-[8px] font-black text-slate-500 uppercase">
+                                        {day.toLocaleDateString('ko-KR', { month: 'short' })}
+                                      </div>
+                                    )}
+                                    <div className={`text-[10px] font-bold ${isToday ? 'text-yellow-700 font-black' : isWeekend ? 'text-slate-400' : 'text-slate-600'}`}>
+                                      {day.getDate()}
+                                    </div>
+                                    <div className={`text-[8px] ${isWeekend ? 'text-slate-400' : 'text-slate-400'}`}>
+                                      {['일', '월', '화', '수', '목', '금', '토'][day.getDay()]}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+
+                          {/* Task Rows */}
+                          {wbsTasks.map((task, taskIdx) => {
+                            const taskStart = new Date(task.startDate);
+                            const taskEnd = new Date(task.endDate);
+                            const rangeStart = timelineRange.days[0];
+
+                            return (
+                              <div key={task.id} className={`flex border-b border-slate-100 ${taskIdx % 2 === 0 ? 'bg-white' : 'bg-slate-50'}`}>
+                                <div className="w-48 shrink-0 px-4 py-3 border-r border-slate-200">
+                                  <p className="text-xs font-black text-slate-900 truncate" title={task.name}>{task.name}</p>
+                                  <p className="text-[10px] text-slate-500 font-bold">{task.assignee}</p>
+                                </div>
+                                <div className="flex relative">
+                                  {timelineRange.days.map((day, dayIdx) => {
+                                    const isWeekend = day.getDay() === 0 || day.getDay() === 6;
+                                    const isToday = new Date().toDateString() === day.toDateString();
+                                    return (
+                                      <div
+                                        key={dayIdx}
+                                        className={`w-8 shrink-0 h-12 border-r border-slate-100 ${isWeekend ? 'bg-slate-100' : ''} ${isToday ? 'bg-yellow-50' : ''}`}
+                                      />
+                                    );
+                                  })}
+                                  {/* Task Bar */}
+                                  {(() => {
+                                    const startOffset = Math.max(0, Math.floor((taskStart.getTime() - rangeStart.getTime()) / 86400000));
+                                    const duration = Math.max(1, Math.floor((taskEnd.getTime() - taskStart.getTime()) / 86400000) + 1);
+                                    const barColor = task.status === 'Done'
+                                      ? 'bg-green-500'
+                                      : task.status === 'In Progress'
+                                        ? 'bg-blue-500'
+                                        : 'bg-slate-400';
+                                    const isDragging = dragState?.taskId === task.id;
+                                    const isEditable = !isMasterView;
+
+                                    return (
+                                      <div
+                                        className={`absolute top-3 h-6 ${barColor} rounded-lg shadow-md flex items-center justify-center transition-shadow group/bar ${
+                                          isDragging ? 'shadow-xl scale-105 z-10' : 'hover:shadow-lg'
+                                        } ${isEditable ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'}`}
+                                        style={{
+                                          left: `${startOffset * 32}px`,
+                                          width: `${Math.max(duration * 32 - 4, 28)}px`,
+                                        }}
+                                        title={`${task.name}: ${task.startDate} ~ ${task.endDate}${isEditable ? '\n드래그: 이동 | 양쪽 끝: 기간 조절' : ''}`}
+                                        onMouseDown={(e) => handleGanttMouseDown(e, task.id, 'move')}
+                                      >
+                                        {/* Resize handle - Start */}
+                                        {isEditable && (
+                                          <div
+                                            className="absolute left-0 top-0 w-2 h-full cursor-ew-resize hover:bg-white/30 rounded-l-lg transition-colors"
+                                            onMouseDown={(e) => {
+                                              e.stopPropagation();
+                                              handleGanttMouseDown(e, task.id, 'resize-start');
+                                            }}
+                                          />
+                                        )}
+
+                                        <span className="text-[9px] font-black text-white truncate px-3 select-none">
+                                          {duration > 2 ? task.name : ''}
+                                        </span>
+
+                                        {/* Resize handle - End */}
+                                        {isEditable && (
+                                          <div
+                                            className="absolute right-0 top-0 w-2 h-full cursor-ew-resize hover:bg-white/30 rounded-r-lg transition-colors"
+                                            onMouseDown={(e) => {
+                                              e.stopPropagation();
+                                              handleGanttMouseDown(e, task.id, 'resize-end');
+                                            }}
+                                          />
+                                        )}
+                                      </div>
+                                    );
+                                  })()}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Legend */}
+                      <div className="px-6 py-4 border-t border-slate-200 bg-slate-50 flex items-center gap-6">
+                        <span className="text-[10px] font-black text-slate-500 uppercase">범례:</span>
+                        <div className="flex items-center gap-2">
+                          <div className="w-4 h-3 bg-slate-400 rounded"></div>
+                          <span className="text-[10px] font-bold text-slate-600">대기</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="w-4 h-3 bg-blue-500 rounded"></div>
+                          <span className="text-[10px] font-bold text-slate-600">진행중</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="w-4 h-3 bg-green-500 rounded"></div>
+                          <span className="text-[10px] font-bold text-slate-600">완료</span>
+                        </div>
+                        <div className="flex items-center gap-2 ml-4">
+                          <div className="w-4 h-3 bg-yellow-100 rounded border border-yellow-300"></div>
+                          <span className="text-[10px] font-bold text-slate-600">오늘</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   <div className="bg-white border border-slate-300 rounded-[2.5rem] overflow-hidden shadow-sm">
                     <table className="w-full text-left">
                       <thead className="bg-slate-100 text-[10px] font-black text-slate-800 uppercase tracking-widest border-b border-slate-300">
                         <tr>
+                          {isMasterView && <th className="px-6 py-5">화면명</th>}
                           <th className="px-8 py-5">상세 업무명</th>
                           <th className="px-8 py-5">담당자</th>
                           <th className="px-8 py-5">일정 (시작/종료)</th>
                           <th className="px-8 py-5">상태</th>
-                          <th className="px-8 py-5"></th>
+                          {!isMasterView && <th className="px-8 py-5"></th>}
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-200">
                         {wbsTasks.map(task => (
                           <tr key={task.id} className="group hover:bg-slate-50">
+                            {isMasterView && (
+                              <td className="px-6 py-5">
+                                <span className="inline-block bg-yellow-100 text-yellow-800 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wide">
+                                  {getScreenNameById(task.originScreenId)}
+                                </span>
+                              </td>
+                            )}
                             <td className="px-8 py-5">
-                              <input
-                                type="text"
-                                value={task.name}
-                                onChange={e => updateWbsTask(task.id, {name: e.target.value})}
-                                className="w-full bg-transparent font-black text-slate-900 text-sm outline-none focus:text-slate-900 border-b border-transparent focus:border-slate-300"
-                              />
-                              <input
-                                type="text"
-                                value={task.detail}
-                                onChange={e => updateWbsTask(task.id, {detail: e.target.value})}
-                                placeholder="상세 기술 내용..."
-                                className="w-full bg-transparent text-[11px] font-bold text-slate-500 mt-1 outline-none"
-                              />
+                              {isMasterView ? (
+                                <>
+                                  <p className="font-black text-slate-900 text-sm">{task.name}</p>
+                                  {task.detail && <p className="text-[11px] font-bold text-slate-500 mt-1">{task.detail}</p>}
+                                </>
+                              ) : (
+                                <>
+                                  <input
+                                    type="text"
+                                    value={task.name}
+                                    onChange={e => updateWbsTask(task.id, {name: e.target.value})}
+                                    className="w-full bg-transparent font-black text-slate-900 text-sm outline-none focus:text-slate-900 border-b border-transparent focus:border-slate-300"
+                                  />
+                                  <input
+                                    type="text"
+                                    value={task.detail}
+                                    onChange={e => updateWbsTask(task.id, {detail: e.target.value})}
+                                    placeholder="상세 기술 내용..."
+                                    className="w-full bg-transparent text-[11px] font-bold text-slate-500 mt-1 outline-none"
+                                  />
+                                </>
+                              )}
                             </td>
                             <td className="px-8 py-5">
-                              <select value={task.assignee} onChange={e => updateWbsTask(task.id, {assignee: e.target.value})} className="bg-transparent font-black text-slate-900 text-xs outline-none cursor-pointer">
-                                {TEAM_MEMBERS.map(m => <option key={m}>{m}</option>)}
-                              </select>
-                            </td>
-                            <td className="px-8 py-5">
-                              <div className="flex flex-col gap-2">
-                                <input
-                                  type="date"
-                                  value={task.startDate}
-                                  onChange={e => updateWbsTask(task.id, {startDate: e.target.value})}
-                                  className="bg-slate-50 border border-slate-300 px-3 py-1.5 rounded-lg font-black text-slate-900 text-xs outline-none focus:ring-2 focus:ring-yellow-400"
+                              {isMasterView ? (
+                                <span className="font-black text-slate-900 text-xs">{task.assignee}</span>
+                              ) : (
+                                <UserSelect
+                                  value={task.assignee}
+                                  onChange={(v) => updateWbsTask(task.id, {assignee: v})}
+                                  options={TEAM_MEMBERS}
+                                  size="xs"
                                 />
-                                <input
-                                  type="date"
-                                  value={task.endDate}
-                                  onChange={e => updateWbsTask(task.id, {endDate: e.target.value})}
-                                  className="bg-slate-50 border border-slate-300 px-3 py-1.5 rounded-lg font-black text-slate-900 text-xs outline-none focus:ring-2 focus:ring-yellow-400"
-                                />
-                              </div>
+                              )}
                             </td>
                             <td className="px-8 py-5">
-                              <select value={task.status} onChange={e => updateWbsTask(task.id, {status: e.target.value as WbsStatus})} className="bg-transparent font-black text-slate-900 text-xs outline-none uppercase">
-                                <option value="Planning">대기</option>
-                                <option value="In Progress">진행중</option>
-                                <option value="Done">완료</option>
-                              </select>
+                              {isMasterView ? (
+                                <div className="flex flex-col gap-1 text-xs font-black text-slate-900">
+                                  <span>{task.startDate}</span>
+                                  <span className="text-slate-400">~ {task.endDate}</span>
+                                </div>
+                              ) : (
+                                <div className="flex flex-col gap-2">
+                                  <input
+                                    type="date"
+                                    value={task.startDate}
+                                    onChange={e => updateWbsTask(task.id, {startDate: e.target.value})}
+                                    className="bg-slate-50 border border-slate-300 px-3 py-1.5 rounded-lg font-black text-slate-900 text-xs outline-none focus:ring-2 focus:ring-yellow-400"
+                                  />
+                                  <input
+                                    type="date"
+                                    value={task.endDate}
+                                    onChange={e => updateWbsTask(task.id, {endDate: e.target.value})}
+                                    className="bg-slate-50 border border-slate-300 px-3 py-1.5 rounded-lg font-black text-slate-900 text-xs outline-none focus:ring-2 focus:ring-yellow-400"
+                                  />
+                                </div>
+                              )}
                             </td>
-                            <td className="px-8 py-5 text-right">
-                               <button onClick={() => {
-                                 const next = wbsTasks.filter(t => t.id !== task.id);
-                                 setWbsTasks(next);
-                                 saveToStorage(next, testCases);
-                               }} className="text-slate-300 hover:text-red-600 text-2xl font-black transition-colors">×</button>
+                            <td className="px-8 py-5">
+                              {isMasterView ? (
+                                <span className={`inline-block px-3 py-1.5 rounded-xl text-[10px] font-black uppercase ${
+                                  task.status === 'Done' ? 'bg-green-100 text-green-800' :
+                                  task.status === 'In Progress' ? 'bg-blue-100 text-blue-800' :
+                                  'bg-slate-100 text-slate-800'
+                                }`}>
+                                  {task.status === 'Planning' ? '대기' : task.status === 'In Progress' ? '진행중' : '완료'}
+                                </span>
+                              ) : (
+                                <StatusSelect
+                                  value={task.status}
+                                  onChange={(v) => updateWbsTask(task.id, {status: v as WbsStatus})}
+                                  options={WBS_STATUS_OPTIONS}
+                                  size="xs"
+                                  variant="badge"
+                                />
+                              )}
                             </td>
+                            {!isMasterView && (
+                              <td className="px-8 py-5 text-right">
+                                 <button onClick={() => {
+                                   const next = wbsTasks.filter(t => t.id !== task.id);
+                                   setWbsTasks(next);
+                                   saveToStorage(next, testCases);
+                                 }} className="text-slate-300 hover:text-red-600 text-2xl font-black transition-colors">×</button>
+                              </td>
+                            )}
                           </tr>
                         ))}
                       </tbody>
                     </table>
                   </div>
+                  </>
                 )}
               </div>
             ) : (
@@ -383,6 +694,7 @@ const DetailModal: React.FC<DetailModalProps> = ({ group, onClose }) => {
                 <div className="flex items-center justify-between">
                   <div>
                     <h2 className="text-3xl font-black text-slate-900 tracking-tighter uppercase leading-none">품질 관리 보드</h2>
+                    <p className="text-[10px] text-slate-600 font-bold mt-2 uppercase tracking-widest">{isMasterView ? '전체 화면 통합 보기 (읽기 전용)' : ''}</p>
                     <div className="mt-4 flex items-center gap-4">
                       <div className="w-40 h-3 bg-slate-100 rounded-full overflow-hidden border border-slate-300">
                         <div className="h-full bg-green-600 transition-all duration-700" style={{ width: `${qaProgress}%` }}></div>
@@ -390,19 +702,45 @@ const DetailModal: React.FC<DetailModalProps> = ({ group, onClose }) => {
                       <span className="text-[11px] font-black text-green-700 uppercase tracking-widest">{qaProgress}% 해결됨</span>
                     </div>
                   </div>
-                  <button onClick={addTestCase} className="px-8 py-3 bg-slate-900 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-xl hover:bg-black transition-all">+ 이슈 등록</button>
+                  {!isMasterView && (
+                    <button onClick={addTestCase} className="px-8 py-3 bg-slate-900 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-xl hover:bg-black transition-all">+ 이슈 등록</button>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-1 gap-4">
                   {testCases.map(tc => (
-                    <div key={tc.id} onClick={() => setEditingQAId(tc.id)} className={`p-8 rounded-[2.5rem] border-4 transition-all cursor-pointer flex items-center justify-between group bg-white ${editingQAId === tc.id ? 'border-slate-900 shadow-2xl' : 'border-slate-200 hover:border-slate-300'}`}>
-                      <div className="flex items-center gap-8">
-                        <div className={`w-4 h-4 rounded-full shadow-md ${tc.priority === 'High' ? 'bg-red-600' : tc.priority === 'Medium' ? 'bg-orange-600' : 'bg-green-600'}`}></div>
+                    <div
+                      key={tc.id}
+                      onClick={() => !isMasterView && setEditingQAId(tc.id)}
+                      className={`p-8 rounded-[2.5rem] border-4 transition-all flex items-center justify-between group bg-white ${
+                        isMasterView
+                          ? 'border-slate-200 cursor-default'
+                          : `cursor-pointer ${editingQAId === tc.id ? 'border-slate-900 shadow-2xl' : 'border-slate-200 hover:border-slate-300'}`
+                      }`}
+                    >
+                      <div className="flex items-center gap-6">
+                        {/* Checkpoint */}
+                        <div className="w-24 shrink-0 text-center">
+                          {tc.checkpoint ? (
+                            <span className="inline-block bg-purple-100 text-purple-800 px-3 py-1.5 rounded-xl text-[10px] font-black">
+                              {tc.checkpoint}
+                            </span>
+                          ) : (
+                            <span className="text-[10px] text-slate-300 font-bold">-</span>
+                          )}
+                        </div>
+                        <div className={`w-4 h-4 rounded-full shadow-md shrink-0 ${tc.priority === 'High' ? 'bg-red-600' : tc.priority === 'Medium' ? 'bg-orange-600' : 'bg-green-600'}`}></div>
                         <div>
-                          <p className="text-lg font-black text-slate-900 tracking-tight leading-none mb-3 group-hover:text-yellow-600 transition-colors">{tc.scenario}</p>
+                          {isMasterView && (
+                            <span className="inline-block bg-yellow-100 text-yellow-800 px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-wide mb-2">
+                              {getScreenNameById(tc.originScreenId)}
+                            </span>
+                          )}
+                          <p className={`text-lg font-black text-slate-900 tracking-tight leading-none mb-3 ${!isMasterView ? 'group-hover:text-yellow-600' : ''} transition-colors`}>{tc.scenario}</p>
                           <div className="flex items-center gap-5 text-[11px] font-black text-slate-600 uppercase tracking-tight">
                             <span className="bg-slate-100 px-3 py-1 rounded-xl">{tc.position}</span>
                             <span>{tc.assignee}</span>
+                            <span className="text-slate-400">{tc.date}</span>
                             <span className="flex items-center gap-2">
                               <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"></path></svg>
                               {tc.comments.length}
@@ -410,11 +748,38 @@ const DetailModal: React.FC<DetailModalProps> = ({ group, onClose }) => {
                           </div>
                         </div>
                       </div>
-                      <div className="flex items-center gap-8">
-                        <span className={`px-5 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest ${tc.status === 'Resolved' || tc.status === 'Closed' ? 'bg-green-100 text-green-800' : 'bg-slate-100 text-slate-800'}`}>
-                          {tc.status === 'Open' ? '오픈' : tc.status === 'In Progress' ? '진행중' : tc.status === 'Resolved' ? '해결됨' : '종료'}
+                      <div className="flex items-center gap-4">
+                        {/* 상태 배지 */}
+                        <span className={`px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-wide ${
+                          tc.status === 'DevDone' || tc.status === 'ProdDone' ? 'bg-green-100 text-green-800' :
+                          tc.status === 'DevError' || tc.status === 'ProdError' ? 'bg-red-100 text-red-800' :
+                          tc.status === 'Hold' ? 'bg-orange-100 text-orange-800' :
+                          'bg-yellow-100 text-yellow-800'
+                        }`}>
+                          {tc.status === 'Reviewing' ? '검토중' :
+                           tc.status === 'DevError' ? 'Dev 오류' :
+                           tc.status === 'ProdError' ? 'Prod 오류' :
+                           tc.status === 'DevDone' ? 'Dev 완료' :
+                           tc.status === 'ProdDone' ? 'Prod 완료' :
+                           tc.status === 'Hold' ? '보류' : tc.status}
                         </span>
-                        <svg className="w-6 h-6 text-slate-300 group-hover:text-slate-900 transition-all group-hover:translate-x-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" d="M9 5l7 7-7 7"></path></svg>
+                        {/* 진행도 배지 */}
+                        <span className={`px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-wide ${
+                          tc.progress === 'ProdDeployed' ? 'bg-emerald-100 text-emerald-800' :
+                          tc.progress === 'DevDeployed' ? 'bg-blue-100 text-blue-800' :
+                          tc.progress === 'Working' ? 'bg-purple-100 text-purple-800' :
+                          tc.progress === 'Checking' ? 'bg-cyan-100 text-cyan-800' :
+                          'bg-slate-100 text-slate-600'
+                        }`}>
+                          {tc.progress === 'Waiting' ? '대기' :
+                           tc.progress === 'Checking' ? '확인' :
+                           tc.progress === 'Working' ? '작업 중' :
+                           tc.progress === 'DevDeployed' ? 'Dev 배포' :
+                           tc.progress === 'ProdDeployed' ? 'Prod 배포' : tc.progress}
+                        </span>
+                        {!isMasterView && (
+                          <svg className="w-6 h-6 text-slate-300 group-hover:text-slate-900 transition-all group-hover:translate-x-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" d="M9 5l7 7-7 7"></path></svg>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -432,40 +797,86 @@ const DetailModal: React.FC<DetailModalProps> = ({ group, onClose }) => {
                </div>
 
                <div className="flex-1 overflow-y-auto custom-scrollbar p-10 space-y-12">
+                  {/* 체크포인트 */}
+                  <div className="space-y-3 bg-purple-50 p-6 rounded-[2rem] border border-purple-200">
+                    <label className="text-[10px] font-black text-purple-700 uppercase tracking-widest block">체크포인트 (탭 내 위치)</label>
+                    <input
+                      value={editingQA.checkpoint || ''}
+                      onChange={e => updateTestCase(editingQA.id, {checkpoint: e.target.value})}
+                      placeholder="예: 로그인 버튼, 결제 폼, 헤더 메뉴..."
+                      className="w-full text-lg font-black text-slate-900 outline-none bg-white px-4 py-3 rounded-xl border border-purple-200 focus:border-purple-500"
+                    />
+                  </div>
+
                   <div className="space-y-3">
                     <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block">이슈 요약</label>
                     <input value={editingQA.scenario} onChange={e => updateTestCase(editingQA.id, {scenario: e.target.value})} className="w-full text-2xl font-black text-slate-900 outline-none focus:text-slate-900 transition-colors bg-transparent border-none p-0" />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-8 bg-slate-100 p-8 rounded-[2.5rem] border border-slate-200">
+                  <div className="grid grid-cols-2 gap-6 bg-slate-100 p-8 rounded-[2.5rem] border border-slate-200">
                     <div className="space-y-2">
-                       <label className="text-[9px] font-black text-slate-500 uppercase block">상태</label>
-                       <select value={editingQA.status} onChange={e => updateTestCase(editingQA.id, {status: e.target.value as QAStatus})} className="w-full bg-white px-4 py-3 rounded-2xl text-[11px] font-black border border-slate-300 outline-none uppercase shadow-sm">
-                          <option value="Open">오픈</option>
-                          <option value="In Progress">진행중</option>
-                          <option value="Resolved">해결됨</option>
-                          <option value="Closed">종료</option>
-                       </select>
+                       <label className="text-[9px] font-black text-slate-500 uppercase block">상태 (TC)</label>
+                       <StatusSelect
+                         value={editingQA.status}
+                         onChange={(v) => updateTestCase(editingQA.id, {status: v as QAStatus})}
+                         options={QA_STATUS_OPTIONS}
+                         size="sm"
+                         variant="badge"
+                       />
+                    </div>
+                    <div className="space-y-2">
+                       <label className="text-[9px] font-black text-slate-500 uppercase block">진행도 (담당자)</label>
+                       <StatusSelect
+                         value={editingQA.progress}
+                         onChange={(v) => updateTestCase(editingQA.id, {progress: v as QAProgress})}
+                         options={QA_PROGRESS_OPTIONS}
+                         size="sm"
+                         variant="badge"
+                       />
                     </div>
                     <div className="space-y-2">
                        <label className="text-[9px] font-black text-slate-500 uppercase block">중요도</label>
-                       <select value={editingQA.priority} onChange={e => updateTestCase(editingQA.id, {priority: e.target.value as QAPriority})} className={`w-full px-4 py-3 rounded-2xl text-[11px] font-black border outline-none uppercase shadow-sm ${editingQA.priority === 'High' ? 'bg-red-600 text-white border-red-700' : 'bg-white text-slate-900 border-slate-300'}`}>
-                          <option value="High">높음</option>
-                          <option value="Medium">중간</option>
-                          <option value="Low">낮음</option>
-                       </select>
+                       <StatusSelect
+                         value={editingQA.priority}
+                         onChange={(v) => updateTestCase(editingQA.id, {priority: v as QAPriority})}
+                         options={PRIORITY_OPTIONS}
+                         size="sm"
+                         variant="badge"
+                       />
                     </div>
                     <div className="space-y-2">
                        <label className="text-[9px] font-black text-slate-500 uppercase block">구분</label>
-                       <select value={editingQA.position} onChange={e => updateTestCase(editingQA.id, {position: e.target.value as QAPosition})} className="w-full bg-white px-4 py-3 rounded-2xl text-[11px] font-black border border-slate-300 outline-none uppercase shadow-sm">
-                          {['Front-end', 'Back-end', 'Design', 'PM'].map(pos => <option key={pos}>{pos}</option>)}
-                       </select>
+                       <StatusSelect
+                         value={editingQA.position}
+                         onChange={(v) => updateTestCase(editingQA.id, {position: v as QAPosition})}
+                         options={POSITION_OPTIONS}
+                         size="sm"
+                         variant="badge"
+                       />
                     </div>
                     <div className="space-y-2">
                        <label className="text-[9px] font-black text-slate-500 uppercase block">담당자</label>
-                       <select value={editingQA.assignee} onChange={e => updateTestCase(editingQA.id, {assignee: e.target.value})} className="w-full bg-white px-4 py-3 rounded-2xl text-[11px] font-black border border-slate-300 outline-none uppercase shadow-sm">
-                          {TEAM_MEMBERS.map(m => <option key={m}>{m}</option>)}
-                       </select>
+                       <UserSelect
+                         value={editingQA.assignee}
+                         onChange={(v) => updateTestCase(editingQA.id, {assignee: v})}
+                         options={TEAM_MEMBERS}
+                         size="sm"
+                       />
+                    </div>
+                    <div className="space-y-2">
+                       <label className="text-[9px] font-black text-slate-500 uppercase block">보고자</label>
+                       <UserSelect
+                         value={editingQA.reporter}
+                         onChange={(v) => updateTestCase(editingQA.id, {reporter: v})}
+                         options={TEAM_MEMBERS}
+                         size="sm"
+                       />
+                    </div>
+                    <div className="col-span-2 space-y-2">
+                       <label className="text-[9px] font-black text-slate-500 uppercase block">등록일</label>
+                       <div className="w-full bg-slate-200 px-4 py-3 rounded-2xl text-[11px] font-black text-slate-600 border border-slate-300">
+                         {editingQA.date}
+                       </div>
                     </div>
                   </div>
 
@@ -476,6 +887,31 @@ const DetailModal: React.FC<DetailModalProps> = ({ group, onClose }) => {
                       className="w-full bg-slate-50 p-6 rounded-[2rem] text-sm font-bold leading-relaxed text-slate-900 outline-none focus:bg-white border-2 border-transparent focus:border-slate-900 min-h-[150px] shadow-inner"
                       placeholder="결함 원인 또는 기획 요구사항을 상세히 작성하세요..."
                     />
+                  </div>
+
+                  {/* 참조 링크 */}
+                  <div className="space-y-4">
+                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block flex items-center gap-2">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
+                      참조 링크
+                    </label>
+                    <input
+                      value={editingQA.referenceLink || ''}
+                      onChange={e => updateTestCase(editingQA.id, {referenceLink: e.target.value})}
+                      placeholder="https://..."
+                      className="w-full bg-slate-50 px-6 py-4 rounded-2xl text-sm font-bold text-slate-900 outline-none focus:bg-white border-2 border-transparent focus:border-slate-900"
+                    />
+                    {editingQA.referenceLink && (
+                      <a
+                        href={editingQA.referenceLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 text-[11px] font-black text-blue-600 hover:text-blue-800 uppercase tracking-widest"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+                        링크 열기
+                      </a>
+                    )}
                   </div>
 
                   <div className="pt-10 border-t border-slate-200 space-y-8">
@@ -502,9 +938,12 @@ const DetailModal: React.FC<DetailModalProps> = ({ group, onClose }) => {
                     <div className="bg-slate-50 p-8 rounded-[3rem] border border-slate-200 space-y-6 shadow-sm">
                        <div className="flex items-center justify-between">
                          <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">댓글 작성자:</span>
-                         <select value={selectedCommentUser} onChange={e => setSelectedCommentUser(e.target.value)} className="bg-transparent text-xs font-black text-slate-900 outline-none uppercase">
-                           {TEAM_MEMBERS.map(m => <option key={m}>{m}</option>)}
-                         </select>
+                         <UserSelect
+                           value={selectedCommentUser}
+                           onChange={setSelectedCommentUser}
+                           options={TEAM_MEMBERS}
+                           size="xs"
+                         />
                        </div>
                        <div className="flex gap-4">
                          <input

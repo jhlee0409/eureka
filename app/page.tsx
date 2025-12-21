@@ -1,13 +1,14 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import SetupForm from './components/SetupForm';
-import DetailModal from './components/DetailModal';
 import { CoverThumbnail } from './components/CoverThumbnail';
 import { FigmaAuth, PrefixGroup } from './types';
 import { fetchFigmaFile } from './services/figmaService';
 
 export default function Home() {
+  const router = useRouter();
   const [state, setState] = useState<{
     pages: Record<string, Record<string, PrefixGroup>>;
     loading: boolean;
@@ -18,7 +19,6 @@ export default function Home() {
     error: null
   });
 
-  const [selectedGroup, setSelectedGroup] = useState<PrefixGroup | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
   const handleSync = async (auth: FigmaAuth) => {
@@ -92,7 +92,25 @@ export default function Home() {
           </div>
         )}
 
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-4">
+          {/* Dashboard Navigation */}
+          <div className="flex items-center gap-2 bg-slate-800 p-1 rounded-xl border border-slate-700">
+            <button
+              onClick={() => router.push('/dashboard/developer')}
+              className="px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-white hover:bg-slate-700 transition-all"
+              title="담당자 대시보드"
+            >
+              담당자
+            </button>
+            <button
+              onClick={() => router.push('/dashboard/qa')}
+              className="px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-white hover:bg-slate-700 transition-all"
+              title="QA 대시보드"
+            >
+              QA
+            </button>
+          </div>
+
           {totalGroups > 0 && (
             <button
               onClick={() => setState({ pages: {}, loading: false, error: null })}
@@ -149,7 +167,11 @@ export default function Home() {
                     return (
                       <div
                         key={prefix}
-                        onClick={() => setSelectedGroup(group)}
+                        onClick={() => {
+                          // Store group data for the detail page
+                          localStorage.setItem(`group_${prefix}`, JSON.stringify(group));
+                          router.push(`/screen/${prefix}`);
+                        }}
                         className="group bg-white rounded-[2rem] border border-slate-200 overflow-hidden hover:border-yellow-500 hover:shadow-2xl hover:shadow-yellow-500/10 transition-all duration-500 cursor-pointer flex flex-col relative"
                       >
                         <div className="aspect-[1.5/1] w-full bg-slate-50 overflow-hidden border-b border-slate-100 flex items-center justify-center relative">
@@ -186,12 +208,6 @@ export default function Home() {
         )}
       </main>
 
-      {selectedGroup && (
-        <DetailModal
-          group={selectedGroup}
-          onClose={() => setSelectedGroup(null)}
-        />
-      )}
     </div>
   );
 }
