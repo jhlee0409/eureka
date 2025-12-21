@@ -594,10 +594,21 @@ export const fetchFigmaFile = async (auth: FigmaAuth): Promise<Record<string, Re
 
   console.log('✅ Parsed screens from test.json:', rawScreens.length);
 
+  // Extract file-level thumbnailUrl and propagate to all screens
+  const fileThumbnailUrl = data.thumbnailUrl as string | undefined;
+  if (fileThumbnailUrl) {
+    console.log('🖼️ Found file-level thumbnailUrl, propagating to all screens');
+    rawScreens.forEach(screen => {
+      if (!screen.thumbnailUrl) {
+        screen.thumbnailUrl = fileThumbnailUrl;
+      }
+    });
+  }
+
   // Debug: Check first few screens
   console.log('🔍 First 5 screens:');
   rawScreens.slice(0, 5).forEach(s => {
-    console.log(`  - name: "${s.name}", baseId: "${s.baseId}", suffix: "${s.suffix || 'none'}"`);
+    console.log(`  - name: "${s.name}", baseId: "${s.baseId}", suffix: "${s.suffix || 'none'}", hasThumb: ${!!s.thumbnailUrl}`);
   });
 
   // Skip image API call when using test.json
