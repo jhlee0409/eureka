@@ -24,8 +24,8 @@ export function SpecPanel({
         </div>
       </div>
 
-      {/* Content */}
-      <div className="flex-1 flex flex-col overflow-hidden p-4">
+      {/* Content - 독립 스크롤 영역 */}
+      <div className="flex-1 overflow-y-auto custom-scrollbar p-4">
         {isMasterView ? (
           <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
             <p className="text-sm text-slate-600 leading-relaxed">
@@ -38,9 +38,9 @@ export function SpecPanel({
             </div>
           </div>
         ) : (
-          <div className="flex flex-col flex-1 overflow-hidden space-y-4">
-            {/* Metadata - 고정 */}
-            <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 shrink-0">
+          <div className="space-y-4">
+            {/* Metadata */}
+            <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
               <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-2">
                 Metadata
               </h3>
@@ -68,9 +68,9 @@ export function SpecPanel({
               </div>
             </div>
 
-            {/* Screen Information - 고정 */}
+            {/* Screen Information */}
             {activeScreen?.screenInformation && (
-              <div className="bg-blue-50 p-3 rounded-lg border border-blue-100 shrink-0">
+              <div className="bg-blue-50 p-3 rounded-lg border border-blue-100">
                 <h3 className="text-[10px] font-bold text-blue-700 uppercase tracking-wide mb-2 flex items-center gap-1.5">
                   <span>ℹ️</span> Screen Information
                 </h3>
@@ -80,20 +80,18 @@ export function SpecPanel({
               </div>
             )}
 
-            {/* Description - 스크롤 영역 */}
-            <div className="bg-white p-3 rounded-lg border border-slate-200 flex-1 flex flex-col min-h-0">
-              <h3 className="text-[10px] font-bold text-slate-600 uppercase tracking-wide mb-2 flex items-center gap-1.5 shrink-0">
+            {/* Description */}
+            <div className="bg-white p-3 rounded-lg border border-slate-200">
+              <h3 className="text-[10px] font-bold text-slate-600 uppercase tracking-wide mb-2 flex items-center gap-1.5">
                 <span>📄</span> Description
               </h3>
-              <div className="flex-1 overflow-y-auto custom-scrollbar">
-                {activeScreen?.description ? (
-                  <p className="text-[13px] text-slate-700 leading-relaxed whitespace-pre-wrap">
-                    {activeScreen.description}
-                  </p>
-                ) : (
-                  <p className="text-[13px] text-slate-400 italic">설명이 없습니다.</p>
-                )}
-              </div>
+              {activeScreen?.description ? (
+                <p className="text-[13px] text-slate-700 leading-relaxed whitespace-pre-wrap">
+                  {activeScreen.description}
+                </p>
+              ) : (
+                <p className="text-[13px] text-slate-400 italic">설명이 없습니다.</p>
+              )}
             </div>
           </div>
         )}
