@@ -45,10 +45,10 @@ function ScreenContent() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-white text-slate-900">
+    <div className="h-screen flex flex-col bg-white text-slate-900 overflow-hidden">
       <ScreenHeader />
 
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex overflow-hidden min-h-0">
         {/* Left: Main Content (기능/TC 탭) */}
         <MainContent
           activeTab={activeTab}
