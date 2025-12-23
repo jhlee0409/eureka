@@ -4,10 +4,9 @@ import React from 'react';
 import { ScreenData } from '../../types';
 import { ScreenProvider, useScreen } from './context/ScreenContext';
 import { ScreenHeader } from './components/ScreenHeader';
-import { SpecDrawer } from './components/SpecDrawer';
+import { SpecPanel } from './components/SpecPanel';
 import { WbsTab } from './components/WbsTab';
 import { QaTab } from './components/QaTab';
-import { DeveloperView } from './components/DeveloperView';
 import { UnifiedTab } from './config/constants';
 
 // ============================================
@@ -32,8 +31,6 @@ function ScreenContent() {
     activeScreen,
     allScreens,
     isMasterView,
-    isSpecPanelOpen,
-    toggleSpecPanel,
     handleClose,
   } = useScreen();
 
@@ -51,22 +48,21 @@ function ScreenContent() {
     <div className="min-h-screen flex flex-col bg-white text-slate-900">
       <ScreenHeader />
 
-      <div className="flex-1 flex overflow-hidden bg-slate-50">
+      <div className="flex-1 flex overflow-hidden">
+        {/* Left: Main Content (기능/TC 탭) */}
         <MainContent
           activeTab={activeTab}
           activeScreen={activeScreen}
           isMasterView={isMasterView}
         />
-      </div>
 
-      {/* Spec Drawer (Overlay) */}
-      <SpecDrawer
-        activeScreen={activeScreen}
-        allScreensCount={allScreens.length}
-        isMasterView={isMasterView}
-        isOpen={isSpecPanelOpen}
-        onClose={toggleSpecPanel}
-      />
+        {/* Right: Spec Panel (항상 표시) */}
+        <SpecPanel
+          activeScreen={activeScreen}
+          allScreensCount={allScreens.length}
+          isMasterView={isMasterView}
+        />
+      </div>
     </div>
   );
 }
@@ -85,8 +81,6 @@ function MainContent({ activeTab, activeScreen, isMasterView }: MainContentProps
     wbsTasks,
     testCases,
     qaProgress,
-    currentUser,
-    setCurrentUser,
     updateWbsTask,
     updateTestCase,
     addWbsTask,
@@ -97,7 +91,7 @@ function MainContent({ activeTab, activeScreen, isMasterView }: MainContentProps
   } = useScreen();
 
   return (
-    <div className="w-full flex flex-col bg-white overflow-hidden">
+    <div className="flex-1 flex flex-col bg-white overflow-hidden">
       <div className="flex-1 overflow-y-auto custom-scrollbar p-6">
         {activeTab === 'wbs' && (
           <WbsTab
@@ -122,17 +116,6 @@ function MainContent({ activeTab, activeScreen, isMasterView }: MainContentProps
             deleteTestCase={deleteTestCase}
             addTestCase={addTestCase}
             originScreenId={activeScreen?.figmaId || ''}
-          />
-        )}
-        {activeTab === 'developer' && (
-          <DeveloperView
-            wbsTasks={wbsTasks}
-            testCases={testCases}
-            currentUser={currentUser}
-            onUserChange={setCurrentUser}
-            updateWbsTask={updateWbsTask}
-            updateTestCase={updateTestCase}
-            isMasterView={isMasterView}
           />
         )}
       </div>

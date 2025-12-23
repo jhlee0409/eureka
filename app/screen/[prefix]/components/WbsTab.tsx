@@ -64,19 +64,17 @@ export function WbsTab({
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-bold text-slate-800 tracking-tight">작업 로드맵</h2>
+          <h2 className="text-lg font-bold text-slate-800 tracking-tight">기능 목록</h2>
           <p className="text-[9px] text-slate-500 font-medium mt-0.5">
-            {isMasterView ? '전체 화면 통합 보기 (읽기 전용)' : `${activeScreen?.name || ''} 상세 작업`}
+            {isMasterView ? '전체 화면 통합 보기' : `${activeScreen?.name || ''} 상세 작업`}
           </p>
         </div>
-        {!isMasterView && (
-          <button
-            onClick={() => setShowAddModal(true)}
-            className="px-3 py-1.5 bg-slate-800 text-white rounded-lg text-[10px] font-bold hover:bg-slate-900 transition-all"
-          >
-            + 업무 추가
-          </button>
-        )}
+        <button
+          onClick={() => setShowAddModal(true)}
+          className="px-3 py-1.5 bg-slate-800 text-white rounded-lg text-[10px] font-bold hover:bg-slate-900 transition-all"
+        >
+          + 기능 추가
+        </button>
       </div>
 
       {/* WBS Add Modal */}

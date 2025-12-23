@@ -14,8 +14,6 @@ export function ScreenHeader() {
     isMasterView,
     activeTab,
     setActiveTab,
-    isSpecPanelOpen,
-    toggleSpecPanel,
     handleClose,
   } = useScreen();
 
@@ -45,22 +43,6 @@ export function ScreenHeader() {
         </div>
 
         <div className="flex items-center gap-2">
-          {/* Spec Panel Toggle */}
-          <button
-            onClick={toggleSpecPanel}
-            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
-              isSpecPanelOpen
-                ? 'bg-yellow-100 text-yellow-700'
-                : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
-            }`}
-            aria-label="기획 스펙 보기"
-          >
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-            스펙
-          </button>
-
           {/* Screen Selector Dropdown */}
           <div className="relative">
             <button
