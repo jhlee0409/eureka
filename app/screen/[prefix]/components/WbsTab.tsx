@@ -12,6 +12,7 @@ interface WbsTabProps {
   testCases: TestCase[];
   isMasterView: boolean;
   activeScreen: ScreenData | null;
+  allScreens: ScreenData[];
   getScreenNameById: (figmaId: string | undefined) => string;
   updateWbsTask: (id: string, updates: Partial<WbsTask>) => void;
   deleteWbsTask: (id: string) => void;
@@ -23,6 +24,7 @@ export function WbsTab({
   testCases,
   isMasterView,
   activeScreen,
+  allScreens,
   getScreenNameById,
   updateWbsTask,
   deleteWbsTask,
@@ -84,6 +86,8 @@ export function WbsTab({
         onAdd={addWbsTask}
         testCases={testCases}
         originScreenId={activeScreen?.figmaId || ''}
+        allScreens={allScreens}
+        isMasterView={isMasterView}
       />
 
       {wbsTasks.length === 0 ? (

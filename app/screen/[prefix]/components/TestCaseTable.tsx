@@ -84,15 +84,15 @@ export function TestCaseTable({
   const isClosed = (status: QAStatus) =>
     ['DevDone', 'ProdDone', 'Rejected', 'Duplicate'].includes(status);
 
-  // 컬럼 수 계산
-  const columnCount = isMasterView ? 9 : 10;
+  // 컬럼 수 계산 (isMasterView일 때 화면 컬럼 추가됨)
+  const columnCount = isMasterView ? 11 : 10;
 
   return (
     <div className="bg-white border border-slate-200 rounded-lg overflow-x-auto">
       <table className="w-full text-left min-w-[900px]">
         <thead className="bg-slate-50 text-[9px] font-bold text-slate-500 uppercase tracking-wide border-b border-slate-200">
           <tr>
-            {!isMasterView && <th className="w-[32px] px-2 py-2.5"></th>}
+            <th className="w-[32px] px-2 py-2.5"></th>
             {isMasterView && <th className="w-[80px] px-2 py-2.5">화면</th>}
             <th className="w-[60px] px-2 py-2.5">타입</th>
             <th className="w-[50px] px-2 py-2.5 text-center">중요</th>
@@ -102,7 +102,7 @@ export function TestCaseTable({
             <th className="w-[90px] px-2 py-2.5">담당자</th>
             <th className="w-[80px] px-2 py-2.5">상태</th>
             <th className="w-[80px] px-2 py-2.5">진행도</th>
-            {!isMasterView && <th className="w-[32px] px-2 py-2.5"></th>}
+            <th className="w-[32px] px-2 py-2.5"></th>
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-100">
@@ -117,18 +117,16 @@ export function TestCaseTable({
               <React.Fragment key={tc.id}>
                 <tr
                   className={`group hover:bg-slate-50 transition-colors cursor-pointer ${isExpanded ? 'bg-blue-50/50' : ''} ${closed ? 'opacity-60' : ''}`}
-                  onClick={() => !isMasterView && toggleExpand(tc.id)}
+                  onClick={() => toggleExpand(tc.id)}
                 >
-                  {!isMasterView && (
-                    <td className="px-2 py-2">
-                      <svg
-                        className={`w-3 h-3 text-slate-400 transition-transform ${isExpanded ? 'rotate-90' : ''}`}
-                        fill="none" stroke="currentColor" viewBox="0 0 24 24"
-                      >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7" />
-                      </svg>
-                    </td>
-                  )}
+                  <td className="px-2 py-2">
+                    <svg
+                      className={`w-3 h-3 text-slate-400 transition-transform ${isExpanded ? 'rotate-90' : ''}`}
+                      fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7" />
+                    </svg>
+                  </td>
 
                   {isMasterView && (
                     <td className="px-2 py-2">
@@ -139,63 +137,39 @@ export function TestCaseTable({
                   )}
 
                   <td className="px-2 py-2" onClick={e => e.stopPropagation()}>
-                    {isMasterView ? (
-                      issueConfig ? (
-                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${issueConfig.color}`}>
-                          {issueConfig.icon}
-                        </span>
-                      ) : <span className="text-slate-300">-</span>
-                    ) : (
-                      <StatusSelect
-                        value={tc.issueType || 'bug'}
-                        onChange={(v) => updateTestCase(tc.id, { issueType: v as IssueType })}
-                        options={ISSUE_TYPE_OPTIONS}
-                        size="xs"
-                      />
-                    )}
+                    <StatusSelect
+                      value={tc.issueType || 'bug'}
+                      onChange={(v) => updateTestCase(tc.id, { issueType: v as IssueType })}
+                      options={ISSUE_TYPE_OPTIONS}
+                      size="xs"
+                    />
                   </td>
 
                   <td className="px-2 py-2 text-center" onClick={e => e.stopPropagation()}>
-                    {isMasterView ? (
-                      <span className={`inline-block w-2.5 h-2.5 rounded-full ${priorityConfig.dot}`} />
-                    ) : (
-                      <StatusSelect
-                        value={tc.priority}
-                        onChange={(v) => updateTestCase(tc.id, { priority: v as QAPriority })}
-                        options={PRIORITY_OPTIONS}
-                        size="xs"
-                      />
-                    )}
+                    <StatusSelect
+                      value={tc.priority}
+                      onChange={(v) => updateTestCase(tc.id, { priority: v as QAPriority })}
+                      options={PRIORITY_OPTIONS}
+                      size="xs"
+                    />
                   </td>
 
                   <td className="px-2 py-2" onClick={e => e.stopPropagation()}>
-                    {isMasterView ? (
-                      <p className={`text-xs font-medium truncate ${closed ? 'line-through text-slate-400' : 'text-slate-800'}`}>
-                        {tc.scenario}
-                      </p>
-                    ) : (
-                      <input
-                        type="text"
-                        value={tc.scenario}
-                        onChange={e => updateTestCase(tc.id, { scenario: e.target.value })}
-                        className={`w-full bg-transparent text-xs font-medium outline-none border-b border-transparent focus:border-slate-300 ${closed ? 'line-through text-slate-400' : 'text-slate-800'}`}
-                      />
-                    )}
+                    <input
+                      type="text"
+                      value={tc.scenario}
+                      onChange={e => updateTestCase(tc.id, { scenario: e.target.value })}
+                      className={`w-full bg-transparent text-xs font-medium outline-none border-b border-transparent focus:border-slate-300 ${closed ? 'line-through text-slate-400' : 'text-slate-800'}`}
+                    />
                   </td>
 
                   <td className="px-2 py-2" onClick={e => e.stopPropagation()}>
-                    {isMasterView ? (
-                      <span className="text-[9px] font-medium text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">
-                        {tc.position}
-                      </span>
-                    ) : (
-                      <StatusSelect
-                        value={tc.position}
-                        onChange={(v) => updateTestCase(tc.id, { position: v as QAPosition })}
-                        options={POSITION_OPTIONS}
-                        size="xs"
-                      />
-                    )}
+                    <StatusSelect
+                      value={tc.position}
+                      onChange={(v) => updateTestCase(tc.id, { position: v as QAPosition })}
+                      options={POSITION_OPTIONS}
+                      size="xs"
+                    />
                   </td>
 
                   <td className="px-2 py-2">
@@ -214,7 +188,6 @@ export function TestCaseTable({
                       onChange={(v) => updateTestCase(tc.id, { assignee: v })}
                       options={TEAM_MEMBERS}
                       size="xs"
-                      disabled={isMasterView}
                     />
                   </td>
 
@@ -224,7 +197,6 @@ export function TestCaseTable({
                       onChange={(v) => updateTestCase(tc.id, { status: v as QAStatus })}
                       options={QA_STATUS_OPTIONS}
                       size="xs"
-                      disabled={isMasterView}
                     />
                   </td>
 
@@ -234,23 +206,20 @@ export function TestCaseTable({
                       onChange={(v) => updateTestCase(tc.id, { progress: v as QAProgress })}
                       options={QA_PROGRESS_OPTIONS}
                       size="xs"
-                      disabled={isMasterView}
                     />
                   </td>
 
-                  {!isMasterView && (
-                    <td className="px-2 py-2 text-center" onClick={e => e.stopPropagation()}>
-                      <button
-                        onClick={() => deleteTestCase(tc.id)}
-                        className="text-slate-300 hover:text-red-500 transition-colors text-lg leading-none"
-                      >
-                        ×
-                      </button>
-                    </td>
-                  )}
+                  <td className="px-2 py-2 text-center" onClick={e => e.stopPropagation()}>
+                    <button
+                      onClick={() => deleteTestCase(tc.id)}
+                      className="text-slate-300 hover:text-red-500 transition-colors text-lg leading-none"
+                    >
+                      ×
+                    </button>
+                  </td>
                 </tr>
 
-                {isExpanded && !isMasterView && (
+                {isExpanded && (
                   <tr>
                     <td colSpan={columnCount} className="bg-slate-50 border-t border-slate-100">
                       <div className="p-4 grid grid-cols-2 gap-4">

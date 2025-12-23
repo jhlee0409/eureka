@@ -78,6 +78,7 @@ interface MainContentProps {
 
 function MainContent({ activeTab, activeScreen, isMasterView }: MainContentProps) {
   const {
+    allScreens,
     wbsTasks,
     testCases,
     qaProgress,
@@ -99,6 +100,7 @@ function MainContent({ activeTab, activeScreen, isMasterView }: MainContentProps
             testCases={testCases}
             isMasterView={isMasterView}
             activeScreen={activeScreen}
+            allScreens={allScreens}
             getScreenNameById={getScreenNameById}
             updateWbsTask={updateWbsTask}
             deleteWbsTask={deleteWbsTask}
@@ -110,6 +112,7 @@ function MainContent({ activeTab, activeScreen, isMasterView }: MainContentProps
             testCases={testCases}
             wbsTasks={wbsTasks}
             isMasterView={isMasterView}
+            allScreens={allScreens}
             qaProgress={qaProgress}
             getScreenNameById={getScreenNameById}
             updateTestCase={updateTestCase}

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { WbsTask, WbsCategory, WbsDifficulty, WbsSubTask, TestCase } from '../../../types';
+import { WbsTask, WbsCategory, WbsDifficulty, WbsSubTask, TestCase, ScreenData } from '../../../types';
 import { TEAM_MEMBERS } from '../hooks/useScreenData';
 import { UserSelect } from '../../../components/ui';
 
@@ -11,6 +11,8 @@ interface WbsAddModalProps {
   onAdd: (task: WbsTask) => void;
   testCases: TestCase[];  // 연결 가능한 TC 목록
   originScreenId: string;
+  allScreens: ScreenData[];
+  isMasterView: boolean;
 }
 
 const CATEGORY_CONFIG: { key: WbsCategory; label: string; icon: string; color: string }[] = [
@@ -27,7 +29,7 @@ const DIFFICULTY_CONFIG: { key: WbsDifficulty; label: string; dots: number }[] =
   { key: 'hard', label: '어려움', dots: 3 },
 ];
 
-export function WbsAddModal({ isOpen, onClose, onAdd, testCases, originScreenId }: WbsAddModalProps) {
+export function WbsAddModal({ isOpen, onClose, onAdd, testCases, originScreenId, allScreens, isMasterView }: WbsAddModalProps) {
   const today = new Date().toISOString().split('T')[0];
 
   const [formData, setFormData] = useState({
@@ -39,6 +41,7 @@ export function WbsAddModal({ isOpen, onClose, onAdd, testCases, originScreenId 
     startDate: today,
     endDate: today,
     relatedTcIds: [] as string[],
+    selectedScreenId: originScreenId || (allScreens.length > 0 ? allScreens[0].figmaId : ''),
   });
 
   const [subtasks, setSubtasks] = useState<Omit<WbsSubTask, 'id'>[]>([]);
@@ -74,6 +77,7 @@ export function WbsAddModal({ isOpen, onClose, onAdd, testCases, originScreenId 
 
   const handleSubmit = () => {
     if (!formData.name.trim()) return;
+    if (isMasterView && !formData.selectedScreenId) return;
 
     const newTask: WbsTask = {
       id: crypto.randomUUID(),
@@ -83,7 +87,7 @@ export function WbsAddModal({ isOpen, onClose, onAdd, testCases, originScreenId 
       assignee: formData.assignee,
       startDate: formData.startDate,
       endDate: formData.endDate,
-      originScreenId,
+      originScreenId: isMasterView ? formData.selectedScreenId : originScreenId,
       category: formData.category,
       difficulty: formData.difficulty,
       relatedTcIds: formData.relatedTcIds.length > 0 ? formData.relatedTcIds : undefined,
@@ -103,6 +107,7 @@ export function WbsAddModal({ isOpen, onClose, onAdd, testCases, originScreenId 
       startDate: today,
       endDate: today,
       relatedTcIds: [],
+      selectedScreenId: originScreenId || (allScreens.length > 0 ? allScreens[0].figmaId : ''),
     });
     setSubtasks([]);
     setShowSubtasks(false);
@@ -130,10 +135,30 @@ export function WbsAddModal({ isOpen, onClose, onAdd, testCases, originScreenId 
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          {/* Screen Selection (Master View only) */}
+          {isMasterView && allScreens.length > 0 && (
+            <div>
+              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-2">
+                생성할 화면 선택 *
+              </label>
+              <select
+                value={formData.selectedScreenId}
+                onChange={(e) => setFormData({ ...formData, selectedScreenId: e.target.value })}
+                className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs font-medium outline-none focus:border-slate-400 focus:ring-1 focus:ring-slate-200"
+              >
+                {allScreens.map((screen) => (
+                  <option key={screen.figmaId} value={screen.figmaId}>
+                    {screen.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
           {/* Step 1: Category */}
           <div>
             <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-2">
-              Step 1. 기능 분류
+              {isMasterView ? 'Step 2' : 'Step 1'}. 기능 분류
             </label>
             <div className="flex flex-wrap gap-1.5">
               {CATEGORY_CONFIG.map(cat => (

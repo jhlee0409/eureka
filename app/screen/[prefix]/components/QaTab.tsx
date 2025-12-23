@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { TestCase, WbsTask } from '../../../types';
+import { TestCase, WbsTask, ScreenData } from '../../../types';
 import { TestCaseTable } from './TestCaseTable';
 import { TcAddModal } from './TcAddModal';
 
@@ -9,6 +9,7 @@ interface QaTabProps {
   testCases: TestCase[];
   wbsTasks: WbsTask[];
   isMasterView: boolean;
+  allScreens: ScreenData[];
   qaProgress: number;
   getScreenNameById: (figmaId: string | undefined) => string;
   updateTestCase: (id: string, updates: Partial<TestCase>) => void;
@@ -21,6 +22,7 @@ export function QaTab({
   testCases,
   wbsTasks,
   isMasterView,
+  allScreens,
   qaProgress,
   getScreenNameById,
   updateTestCase,
@@ -61,6 +63,8 @@ export function QaTab({
         onAdd={addTestCase}
         wbsTasks={wbsTasks}
         originScreenId={originScreenId}
+        allScreens={allScreens}
+        isMasterView={isMasterView}
       />
 
       {/* TC 테이블 */}
