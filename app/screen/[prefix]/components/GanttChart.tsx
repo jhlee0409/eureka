@@ -113,7 +113,7 @@ export function GanttChart({ wbsTasks, isMasterView, dragState, onMouseDown }: G
                         ? 'bg-blue-500'
                         : 'bg-slate-400';
                     const isDragging = dragState?.taskId === task.id;
-                    const isEditable = !isMasterView;
+                    const isEditable = true; // 전체/개별 모두 수정 가능
 
                     return (
                       <div

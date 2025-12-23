@@ -38,13 +38,12 @@ export const PROGRESS_STEPS: { key: QAProgress; label: string }[] = [
 ];
 
 // Unified Tab Types (replaces separate ViewMode and TabType)
-export const UNIFIED_TABS = ['wbs', 'qa', 'developer'] as const;
+export const UNIFIED_TABS = ['wbs', 'qa'] as const;
 export type UnifiedTab = typeof UNIFIED_TABS[number];
 
 export const UNIFIED_TAB_CONFIG: Record<UnifiedTab, { label: string; icon: string }> = {
-  'wbs': { label: '기획/WBS', icon: '📋' },
-  'qa': { label: 'QA 테스트', icon: '🧪' },
-  'developer': { label: '담당자 현황', icon: '👤' },
+  'wbs': { label: '기능', icon: '📋' },
+  'qa': { label: 'TC', icon: '🧪' },
 };
 
 // Legacy types (for backward compatibility during migration)

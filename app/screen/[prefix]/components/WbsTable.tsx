@@ -111,7 +111,7 @@ export function WbsTable({
       <table className="w-full text-left">
         <thead className="bg-slate-50 text-[9px] font-bold text-slate-600 uppercase tracking-wide border-b border-slate-200">
           <tr>
-            {!isMasterView && <th className="px-2 py-2 w-8"></th>}
+            <th className="px-2 py-2 w-8"></th>
             {isMasterView && <th className="px-3 py-2">화면명</th>}
             <th className="px-3 py-2">상세 업무명</th>
             <th className="px-3 py-2 w-20">분류</th>
@@ -119,7 +119,7 @@ export function WbsTable({
             <th className="px-3 py-2">일정</th>
             <th className="px-3 py-2">상태</th>
             <th className="px-3 py-2 w-16">하위작업</th>
-            {!isMasterView && <th className="px-3 py-2 w-8"></th>}
+            <th className="px-3 py-2 w-8"></th>
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-100">
@@ -135,21 +135,19 @@ export function WbsTable({
                 {/* 메인 행 */}
                 <tr
                   className={`group hover:bg-slate-50 ${isExpanded ? 'bg-slate-50' : ''}`}
-                  onClick={() => !isMasterView && toggleExpand(task.id)}
+                  onClick={() => toggleExpand(task.id)}
                 >
                   {/* 확장 아이콘 */}
-                  {!isMasterView && (
-                    <td className="px-2 py-2 cursor-pointer">
-                      <svg
-                        className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`}
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7" />
-                      </svg>
-                    </td>
-                  )}
+                  <td className="px-2 py-2 cursor-pointer">
+                    <svg
+                      className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`}
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7" />
+                    </svg>
+                  </td>
 
                   {isMasterView && (
                     <td className="px-3 py-2">
@@ -161,28 +159,19 @@ export function WbsTable({
 
                   {/* 업무명 */}
                   <td className="px-3 py-2" onClick={e => e.stopPropagation()}>
-                    {isMasterView ? (
-                      <>
-                        <p className="font-bold text-slate-900 text-xs">{task.name}</p>
-                        {task.detail && <p className="text-[10px] text-slate-500 mt-0.5">{task.detail}</p>}
-                      </>
-                    ) : (
-                      <>
-                        <input
-                          type="text"
-                          value={task.name}
-                          onChange={e => updateWbsTask(task.id, { name: e.target.value })}
-                          className="w-full bg-transparent font-bold text-slate-900 text-xs outline-none focus:text-slate-900 border-b border-transparent focus:border-slate-300"
-                        />
-                        <input
-                          type="text"
-                          value={task.detail}
-                          onChange={e => updateWbsTask(task.id, { detail: e.target.value })}
-                          placeholder="상세 기술 내용..."
-                          className="w-full bg-transparent text-[10px] text-slate-500 mt-0.5 outline-none"
-                        />
-                      </>
-                    )}
+                    <input
+                      type="text"
+                      value={task.name}
+                      onChange={e => updateWbsTask(task.id, { name: e.target.value })}
+                      className="w-full bg-transparent font-bold text-slate-900 text-xs outline-none focus:text-slate-900 border-b border-transparent focus:border-slate-300"
+                    />
+                    <input
+                      type="text"
+                      value={task.detail}
+                      onChange={e => updateWbsTask(task.id, { detail: e.target.value })}
+                      placeholder="상세 기술 내용..."
+                      className="w-full bg-transparent text-[10px] text-slate-500 mt-0.5 outline-none"
+                    />
                   </td>
 
                   {/* 분류 & 난이도 */}
@@ -210,33 +199,25 @@ export function WbsTable({
                       onChange={(v) => updateWbsTask(task.id, { assignee: v })}
                       options={TEAM_MEMBERS}
                       size="xs"
-                      disabled={isMasterView}
                     />
                   </td>
 
                   {/* 일정 */}
                   <td className="px-3 py-2" onClick={e => e.stopPropagation()}>
-                    {isMasterView ? (
-                      <div className="flex flex-col gap-0.5 text-[10px] font-bold text-slate-700">
-                        <span>{task.startDate}</span>
-                        <span className="text-slate-400">~ {task.endDate}</span>
-                      </div>
-                    ) : (
-                      <div className="flex flex-col gap-1">
-                        <input
-                          type="date"
-                          value={task.startDate}
-                          onChange={e => updateWbsTask(task.id, { startDate: e.target.value })}
-                          className="bg-slate-50 border border-slate-200 px-2 py-1 rounded text-slate-700 text-[10px] outline-none focus:ring-1 focus:ring-slate-400"
-                        />
-                        <input
-                          type="date"
-                          value={task.endDate}
-                          onChange={e => updateWbsTask(task.id, { endDate: e.target.value })}
-                          className="bg-slate-50 border border-slate-200 px-2 py-1 rounded text-slate-700 text-[10px] outline-none focus:ring-1 focus:ring-slate-400"
-                        />
-                      </div>
-                    )}
+                    <div className="flex flex-col gap-1">
+                      <input
+                        type="date"
+                        value={task.startDate}
+                        onChange={e => updateWbsTask(task.id, { startDate: e.target.value })}
+                        className="bg-slate-50 border border-slate-200 px-2 py-1 rounded text-slate-700 text-[10px] outline-none focus:ring-1 focus:ring-slate-400"
+                      />
+                      <input
+                        type="date"
+                        value={task.endDate}
+                        onChange={e => updateWbsTask(task.id, { endDate: e.target.value })}
+                        className="bg-slate-50 border border-slate-200 px-2 py-1 rounded text-slate-700 text-[10px] outline-none focus:ring-1 focus:ring-slate-400"
+                      />
+                    </div>
                   </td>
 
                   {/* 상태 */}
@@ -246,8 +227,6 @@ export function WbsTable({
                       onChange={(v) => updateWbsTask(task.id, { status: v as WbsStatus })}
                       options={WBS_STATUS_OPTIONS}
                       size="xs"
-                      variant={isMasterView ? 'badge' : 'default'}
-                      disabled={isMasterView}
                     />
                   </td>
 
@@ -271,20 +250,18 @@ export function WbsTable({
                   </td>
 
                   {/* 삭제 */}
-                  {!isMasterView && (
-                    <td className="px-3 py-2 text-right" onClick={e => e.stopPropagation()}>
-                      <button
-                        onClick={() => deleteWbsTask(task.id)}
-                        className="text-slate-300 hover:text-red-500 text-lg font-bold transition-colors"
-                      >
-                        ×
-                      </button>
-                    </td>
-                  )}
+                  <td className="px-3 py-2 text-right" onClick={e => e.stopPropagation()}>
+                    <button
+                      onClick={() => deleteWbsTask(task.id)}
+                      className="text-slate-300 hover:text-red-500 text-lg font-bold transition-colors"
+                    >
+                      ×
+                    </button>
+                  </td>
                 </tr>
 
                 {/* 확장 영역 */}
-                {isExpanded && !isMasterView && (
+                {isExpanded && (
                   <tr>
                     <td colSpan={9} className="bg-slate-50 border-t border-slate-100">
                       <div className="px-6 py-4 space-y-4">

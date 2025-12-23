@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { TestCase, QAPriority, QAPosition, IssueType, WbsTask } from '../../../types';
+import { TestCase, QAPriority, QAPosition, IssueType, WbsTask, ScreenData } from '../../../types';
 import { TEAM_MEMBERS } from '../hooks/useScreenData';
 import { collectDeviceInfo, formatDeviceInfoString, AUTO_COLLECTIBLE_ITEMS, DeviceInfo } from '../../../utils/deviceInfo';
 import { UserSelect } from '../../../components/ui';
@@ -12,6 +12,8 @@ interface TcAddModalProps {
   onAdd: (tc: TestCase) => void;
   wbsTasks: WbsTask[];
   originScreenId: string;
+  allScreens: ScreenData[];
+  isMasterView: boolean;
 }
 
 const ISSUE_TYPE_CONFIG: { key: IssueType; label: string; icon: string; color: string }[] = [
@@ -34,7 +36,7 @@ const PRIORITY_CONFIG: { key: QAPriority; label: string; color: string }[] = [
   { key: 'Low', label: '낮음', color: 'bg-green-500 text-white' },
 ];
 
-export function TcAddModal({ isOpen, onClose, onAdd, wbsTasks, originScreenId }: TcAddModalProps) {
+export function TcAddModal({ isOpen, onClose, onAdd, wbsTasks, originScreenId, allScreens, isMasterView }: TcAddModalProps) {
   const today = new Date().toISOString().split('T')[0];
 
   const [formData, setFormData] = useState({
@@ -51,6 +53,7 @@ export function TcAddModal({ isOpen, onClose, onAdd, wbsTasks, originScreenId }:
     reporter: TEAM_MEMBERS[0],
     relatedWbsId: '',
     referenceLink: '',
+    selectedScreenId: originScreenId || (allScreens.length > 0 ? allScreens[0].figmaId : ''),
   });
 
   const [step, setStep] = useState(1);
@@ -82,6 +85,7 @@ export function TcAddModal({ isOpen, onClose, onAdd, wbsTasks, originScreenId }:
 
   const handleSubmit = () => {
     if (!formData.scenario.trim()) return;
+    if (isMasterView && !formData.selectedScreenId) return;
 
     const newTC: TestCase = {
       id: crypto.randomUUID(),
@@ -100,7 +104,7 @@ export function TcAddModal({ isOpen, onClose, onAdd, wbsTasks, originScreenId }:
       assignee: formData.assignee,
       progress: 'Waiting',
       comments: [],
-      originScreenId,
+      originScreenId: isMasterView ? formData.selectedScreenId : originScreenId,
       issueType: formData.issueType,
       relatedWbsId: formData.relatedWbsId || undefined,
       activityLog: [{
@@ -131,6 +135,7 @@ export function TcAddModal({ isOpen, onClose, onAdd, wbsTasks, originScreenId }:
       reporter: TEAM_MEMBERS[0],
       relatedWbsId: '',
       referenceLink: '',
+      selectedScreenId: originScreenId || (allScreens.length > 0 ? allScreens[0].figmaId : ''),
     });
     setStep(1);
     setDeviceInfo(null);
@@ -173,6 +178,26 @@ export function TcAddModal({ isOpen, onClose, onAdd, wbsTasks, originScreenId }:
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
           {step === 1 && (
             <>
+              {/* Screen Selection (Master View only) */}
+              {isMasterView && allScreens.length > 0 && (
+                <div>
+                  <label className="block text-[9px] font-bold text-slate-500 uppercase mb-2">
+                    생성할 화면 선택 *
+                  </label>
+                  <select
+                    value={formData.selectedScreenId}
+                    onChange={(e) => setFormData({ ...formData, selectedScreenId: e.target.value })}
+                    className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs font-medium outline-none focus:border-slate-400 focus:ring-1 focus:ring-slate-200"
+                  >
+                    {allScreens.map((screen) => (
+                      <option key={screen.figmaId} value={screen.figmaId}>
+                        {screen.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
               {/* Issue Type */}
               <div>
                 <label className="block text-[9px] font-bold text-slate-500 uppercase mb-2">
